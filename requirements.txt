@@ -1,0 +1,12 @@
+# API関連（最小限）
+fastapi==0.104.1  # WebフレームワークAPI
+uvicorn[standard]==0.23.2  # ASGIサーバー
+
+# テスト関連
+pytest==7.4.3
+pytest-cov==4.1.0
+httpx==0.25.1  # FastAPIのテスト用HTTPクライアント
+
+# コード品質とスタイル
+flake8==6.1.0 
+black==23.10.1  
