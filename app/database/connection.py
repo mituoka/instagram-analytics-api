@@ -2,8 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# モデル基底クラスをインポート
-from app.models.base import Base
+# Baseは実際には使用されていないためインポートを削除
 
 # DB接続設定: 環境変数 or デフォルト値
 DATABASE_URL = os.getenv(

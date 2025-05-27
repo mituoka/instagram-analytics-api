@@ -1,8 +1,12 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
-from alembic import context
 import os
 import sys
+from sqlalchemy import engine_from_config, pool
+from alembic import context
+
+# モデル定義をインポートするためにプロジェクトルートをパスに追加
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.models.base import Base
 
 # Alembicの設定オブジェクト
 config = context.config
@@ -15,10 +19,6 @@ if db_url:
 
 # ログ設定
 fileConfig(config.config_file_name)
-
-# モデル定義をインポートするためにプロジェクトルートをパスに追加
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.models.base import Base
 
 target_metadata = Base.metadata
 
