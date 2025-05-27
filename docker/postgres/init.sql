@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS influencer_posts (
     id SERIAL PRIMARY KEY,
     influencer_id INT NOT NULL,
-    post_id BIGINT NOT NULL UNIQUE,  -- ユニーク制約を追加
+    post_id BIGINT NOT NULL,
     shortcode VARCHAR(50) NOT NULL,
     likes INT NOT NULL DEFAULT 0,
     comments INT NOT NULL DEFAULT 0,

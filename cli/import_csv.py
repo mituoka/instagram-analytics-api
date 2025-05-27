@@ -58,6 +58,14 @@ def import_csv(file_path, batch_size=1000):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
+            
+            # 必須カラムの検証
+            required_columns = ['influencer_id', 'post_id', 'shortcode', 'likes', 'comments', 'thumbnail', 'text', 'post_date']
+            missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+            if missing_columns:
+                logger.error(f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}")
+                return False
+                
             records = []
             row_count = 0
             
