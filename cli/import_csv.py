@@ -37,17 +37,19 @@ def parse_args():
 def validate_csv_columns(reader, required_columns):
     """
     CSVファイルのヘッダーを検証
-    
+
     Args:
         reader: CSVリーダー
         required_columns: 必須カラムのリスト
-        
+
     Returns:
         bool: バリデーション結果（Trueなら問題なし、Falseなら問題あり）
     """
     missing_columns = [col for col in required_columns if col not in reader.fieldnames]
     if missing_columns:
-        logger.error(f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}")
+        logger.error(
+            f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}"
+        )
         return False
     return True
 
@@ -55,16 +57,16 @@ def validate_csv_columns(reader, required_columns):
 def create_record_from_row(row):
     """
     CSVの行からInfluencerPostレコードを作成
-    
+
     Args:
         row: CSVの1行分のデータ
-    
+
     Returns:
         InfluencerPost: モデルインスタンス
     """
     # 日付のパース
     post_date = datetime.strptime(row["post_date"], "%Y-%m-%d %H:%M:%S")
-    
+
     # モデルインスタンスの作成
     return InfluencerPost(
         influencer_id=int(row["influencer_id"]),
@@ -81,12 +83,12 @@ def create_record_from_row(row):
 def commit_records(db, records, row_count):
     """
     レコードのコミット処理
-    
+
     Args:
         db: データベースセッション
         records: コミット対象のレコードリスト
         row_count: 処理した行数
-    
+
     Returns:
         list: 空のリスト（コミット後にリセット）
     """
@@ -97,6 +99,84 @@ def commit_records(db, records, row_count):
     return []
 
 
+def process_csv_row(db, row, records, batch_size, row_count):
+    """
+    CSVの1行を処理し、必要に応じてバッチ処理を行う
+
+    Args:
+        db: データベースセッション
+        row: 処理する行データ
+        records: 現在の処理中レコードリスト
+        batch_size: バッチサイズ
+        row_count: 現在の行番号
+
+    Returns:
+        list: 更新されたレコードリスト（バッチ処理後は空リスト）
+    """
+    try:
+        # レコード作成と追加
+        record = create_record_from_row(row)
+        records.append(record)
+
+        # バッチサイズに達したらコミット
+        if row_count % batch_size == 0:
+            return commit_records(db, records, row_count)
+
+        return records
+
+    except (ValueError, KeyError) as e:
+        logger.error(f"行{row_count}の処理でデータエラー: {str(e)}")
+        return records
+    except Exception as e:
+        logger.error(f"行{row_count}の処理で予期しないエラー: {str(e)}")
+        raise
+
+
+def process_csv_file(file_path, db, batch_size):
+    """
+    CSVファイルの内容を処理する
+
+    Args:
+        file_path: CSVファイルのパス
+        db: データベースセッション
+        batch_size: バッチサイズ
+
+    Returns:
+        bool: 処理成功/失敗
+    """
+    # 必須カラムの定義
+    required_columns = [
+        "influencer_id",
+        "post_id",
+        "shortcode",
+        "likes",
+        "comments",
+        "thumbnail",
+        "text",
+        "post_date",
+    ]
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+
+        # ヘッダーバリデーション
+        if not validate_csv_columns(reader, required_columns):
+            return False
+
+        records = []
+        row_count = 0
+
+        # 各行を処理
+        for row_count, row in enumerate(reader, 1):
+            records = process_csv_row(db, row, records, batch_size, row_count)
+
+        # 残りのレコードをコミット
+        commit_records(db, records, row_count)
+
+        logger.info(f"インポート完了: 合計{row_count}件")
+        return True
+
+
 def import_csv(file_path, batch_size=1000):
     """
     CSVファイルをデータベースにインポート
@@ -104,7 +184,7 @@ def import_csv(file_path, batch_size=1000):
     Args:
         file_path: CSVファイルのパス
         batch_size: 一度にコミットするバッチサイズ
-        
+
     Returns:
         bool: インポートの成功/失敗
     """
@@ -115,46 +195,9 @@ def import_csv(file_path, batch_size=1000):
 
     logger.info(f"CSVファイルのインポートを開始: {file_path}")
 
-    # 必須カラムの定義
-    required_columns = [
-        "influencer_id", "post_id", "shortcode", "likes",
-        "comments", "thumbnail", "text", "post_date",
-    ]
-    
     db = SessionLocal()
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            
-            # ヘッダーバリデーション
-            if not validate_csv_columns(reader, required_columns):
-                return False
-
-            records = []
-            row_count = 0
-
-            # 各行を処理
-            for row_count, row in enumerate(reader, 1):
-                try:
-                    record = create_record_from_row(row)
-                    records.append(record)
-
-                    # バッチサイズに達したらコミット
-                    if row_count % batch_size == 0:
-                        records = commit_records(db, records, row_count)
-
-                except (ValueError, KeyError) as e:
-                    logger.error(f"行{row_count}の処理でデータエラー: {str(e)}")
-                except Exception as e:
-                    logger.error(f"行{row_count}の処理で予期しないエラー: {str(e)}")
-                    raise
-
-            # 残りのレコードをコミット
-            commit_records(db, records, row_count)
-
-            logger.info(f"インポート完了: 合計{row_count}件")
-            return True
-
+        return process_csv_file(file_path, db, batch_size)
     except (IOError, csv.Error) as e:
         logger.error(f"ファイル読み込み中にエラーが発生: {str(e)}")
         db.rollback()

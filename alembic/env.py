@@ -3,10 +3,10 @@ import os
 import sys
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+from app.models.base import Base
 
 # モデル定義をインポートするためにプロジェクトルートをパスに追加
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.models.base import Base
 
 # Alembicの設定オブジェクト
 config = context.config
@@ -21,11 +21,6 @@ if db_url:
 fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline():
