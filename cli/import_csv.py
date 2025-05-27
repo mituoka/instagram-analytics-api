@@ -10,40 +10,34 @@ import sys
 from datetime import datetime
 
 # ルートディレクトリをPython pathに追加
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.database.connection import SessionLocal
 from app.models.database_models import InfluencerPost
 
 # ロギング設定
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 def parse_args():
     """コマンドライン引数のパース"""
     parser = argparse.ArgumentParser(
-        description='CSVファイルからインフルエンサー投稿データをインポート'
+        description="CSVファイルからインフルエンサー投稿データをインポート"
     )
+    parser.add_argument("--file", required=True, help="インポートするCSVファイルのパス")
     parser.add_argument(
-        '--file',
-        required=True,
-        help='インポートするCSVファイルのパス'
-    )
-    parser.add_argument(
-        '--batch-size',
-        type=int,
-        default=1000,
-        help='一度にコミットするレコード数'
+        "--batch-size", type=int, default=1000, help="一度にコミットするレコード数"
     )
     return parser.parse_args()
+
 
 def import_csv(file_path, batch_size=1000):
     """
     CSVファイルをデータベースにインポート
-    
+
     Args:
         file_path: CSVファイルのパス
         batch_size: 一度にコミットするバッチサイズ
@@ -51,49 +45,62 @@ def import_csv(file_path, batch_size=1000):
     if not os.path.exists(file_path):
         logger.error(f"ファイルが見つかりません: {file_path}")
         return False
-        
+
     logger.info(f"CSVファイルのインポートを開始: {file_path}")
-    
+
     db = SessionLocal()
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            
+
             # 必須カラムの検証
-            required_columns = ['influencer_id', 'post_id', 'shortcode', 'likes', 'comments', 'thumbnail', 'text', 'post_date']
-            missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+            required_columns = [
+                "influencer_id",
+                "post_id",
+                "shortcode",
+                "likes",
+                "comments",
+                "thumbnail",
+                "text",
+                "post_date",
+            ]
+            missing_columns = [
+                col for col in required_columns if col not in reader.fieldnames
+            ]
             if missing_columns:
-                logger.error(f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}")
+                logger.error(
+                    f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}"
+                )
                 return False
-                
+
             records = []
             row_count = 0
-            
+
             for row_count, row in enumerate(reader, 1):
                 try:
                     # 日付のパース
-                    post_date = datetime.strptime(row['post_date'], '%Y-%m-%d %H:%M:%S')
-                    
+                    post_date = datetime.strptime(row["post_date"], "%Y-%m-%d %H:%M:%S")
+
                     # モデルインスタンスの作成
                     record = InfluencerPost(
-                        influencer_id=int(row['influencer_id']),
-                        post_id=int(row['post_id']),
-                        shortcode=row['shortcode'],
-                        likes=int(row['likes']),
-                        comments=int(row['comments']),
-                        thumbnail=row['thumbnail'],
-                        text=row['text'],
-                        post_date=post_date
+                        influencer_id=int(row["influencer_id"]),
+                        post_id=int(row["post_id"]),
+                        shortcode=row["shortcode"],
+                        likes=int(row["likes"]),
+                        comments=int(row["comments"]),
+                        thumbnail=row["thumbnail"],
+                        text=row["text"],
+                        post_date=post_date,
                     )
                     records.append(record)
-                    
+
                     # バッチサイズに達したらコミット
                     if row_count % batch_size == 0:
                         db.bulk_save_objects(records)
                         db.commit()
                         records = []
                         logger.info(f"{row_count}件処理しました")
-                        
+
                 except (ValueError, KeyError) as e:
                     # データ型変換や必須キーが見つからない場合のエラー
                     logger.error(f"行{row_count}の処理でデータエラー: {str(e)}")
@@ -102,15 +109,15 @@ def import_csv(file_path, batch_size=1000):
                     logger.error(f"行{row_count}の処理で予期しないエラー: {str(e)}")
                     # 重大なエラーなら処理を中断するために例外を再スロー
                     raise
-            
+
             # 残りのレコードをコミット
             if records:
                 db.bulk_save_objects(records)
                 db.commit()
-                
+
             logger.info(f"インポート完了: 合計{row_count}件")
             return True
-            
+
     except (IOError, csv.Error) as e:
         # ファイル関連のエラー
         logger.error(f"ファイル読み込み中にエラーが発生: {str(e)}")
@@ -125,11 +132,13 @@ def import_csv(file_path, batch_size=1000):
     finally:
         db.close()
 
+
 def main():
     """メイン関数"""
     args = parse_args()
     success = import_csv(args.file, args.batch_size)
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()
