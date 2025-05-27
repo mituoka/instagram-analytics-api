@@ -1,11 +1,14 @@
 # API関連（最小限）
 fastapi==0.104.1  # WebフレームワークAPI
 uvicorn[standard]==0.23.2  # ASGIサーバー
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
 
 # テスト関連
 pytest==7.4.3
 pytest-cov==4.1.0
-httpx==0.25.1  # FastAPIのテスト用HTTPクライアント
+httpx==0.25.1
 
 # コード品質とスタイル
 flake8==6.1.0 

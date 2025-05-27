@@ -22,7 +22,7 @@ class InfluencerPost(InfluencerPostBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # pydantic v2では orm_mode の代わりに from_attributes を使用
 
 
 # 統計情報のスキーマ
