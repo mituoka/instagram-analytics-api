@@ -114,11 +114,3 @@ def get_top_influencers_by_comments(db: Session, limit: int = 10):
         for result in results
     ]
 
-    return [
-        {
-            "influencer_id": result.influencer_id,
-            "avg_value": float(result.avg_comments),
-            "total_posts": result.total_posts,
-        }
-        for result in results
-    ]
