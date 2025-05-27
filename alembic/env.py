@@ -1,8 +1,12 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
-from alembic import context
 import os
 import sys
+from sqlalchemy import engine_from_config, pool
+from alembic import context
+from app.models.base import Base
+
+# モデル定義をインポートするためにプロジェクトルートをパスに追加
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Alembicの設定オブジェクト
 config = context.config
@@ -16,20 +20,12 @@ if db_url:
 # ログ設定
 fileConfig(config.config_file_name)
 
-# モデル定義をインポートするためにプロジェクトルートをパスに追加
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.models.base import Base
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline():
     """オフラインモードでマイグレーションを実行
-    
+
     データベースへの実際の接続なしでマイグレーションスクリプトを生成します。
     """
     url = config.get_main_option("sqlalchemy.url")
@@ -46,7 +42,7 @@ def run_migrations_offline():
 
 def run_migrations_online():
     """オンラインモードでマイグレーションを実行
-    
+
     実際のデータベース接続を使用してマイグレーションを実行します。
     """
     connectable = engine_from_config(
@@ -56,9 +52,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

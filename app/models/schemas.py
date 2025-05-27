@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
+
 
 # インフルエンサー投稿のスキーマ
 class InfluencerPostBase(BaseModel):
@@ -13,6 +14,7 @@ class InfluencerPostBase(BaseModel):
     text: Optional[str] = None
     post_date: datetime
 
+
 # データベースから取得した投稿のスキーマ
 class InfluencerPost(InfluencerPostBase):
     id: int
@@ -22,6 +24,7 @@ class InfluencerPost(InfluencerPostBase):
     class Config:
         orm_mode = True
 
+
 # 統計情報のスキーマ
 class InfluencerStats(BaseModel):
     influencer_id: int
@@ -29,11 +32,13 @@ class InfluencerStats(BaseModel):
     avg_comments: float = Field(..., description="平均コメント数")
     total_posts: int = Field(..., description="投稿数")
 
+
 # ランキング用のスキーマ
 class InfluencerRanking(BaseModel):
     influencer_id: int
     avg_value: float = Field(..., description="平均値（いいね数またはコメント数）")
     total_posts: int = Field(..., description="投稿数")
+
 
 # キーワード出現回数のスキーマ
 class KeywordCount(BaseModel):
