@@ -1,11 +1,15 @@
 """
 インフルエンサーデータの分析APIエンドポイント
 """
-from fastapi import APIRouter, Depends, Query, Path
-from sqlalchemy.orm import Session
-from typing import List
 
-from app.database.connection import get_db
+from fastapi import APIRouter
+
+# 将来的に必要になったら以下のコメントを外します
+# from fastapi import Depends, Query, Path
+# from sqlalchemy.orm import Session
+# from typing import List
+# from app.database.connection import get_db
+
 # 将来的にテキスト分析サービスが実装されたら、ここでインポートします
 # from app.services import text_analysis_service
 

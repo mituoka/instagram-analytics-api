@@ -25,9 +25,7 @@ app.add_middleware(
 
 # ルーターの登録
 app.include_router(
-    influencer.router,
-    prefix="/api/v1/influencers",
-    tags=["influencers"]
+    influencer.router, prefix="/api/v1/influencers", tags=["influencers"]
 )
 
 
