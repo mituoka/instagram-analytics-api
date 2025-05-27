@@ -165,8 +165,6 @@ def import_csv(file_path, batch_size=1000):
         raise
     finally:
         db.close()
-    finally:
-        db.close()
 
 
 def main():
