@@ -59,8 +59,9 @@ def import_csv(file_path, batch_size=1000):
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             records = []
+            row_count = 0
             
-            for i, row in enumerate(reader, 1):
+            for row_count, row in enumerate(reader, 1):
                 try:
                     # 日付のパース
                     post_date = datetime.strptime(row['post_date'], '%Y-%m-%d %H:%M:%S')
@@ -79,27 +80,40 @@ def import_csv(file_path, batch_size=1000):
                     records.append(record)
                     
                     # バッチサイズに達したらコミット
-                    if i % batch_size == 0:
+                    if row_count % batch_size == 0:
                         db.bulk_save_objects(records)
                         db.commit()
                         records = []
-                        logger.info(f"{i}件処理しました")
+                        logger.info(f"{row_count}件処理しました")
                         
+                except (ValueError, KeyError) as e:
+                    # データ型変換や必須キーが見つからない場合のエラー
+                    logger.error(f"行{row_count}の処理でデータエラー: {str(e)}")
                 except Exception as e:
-                    logger.error(f"行{i}の処理でエラー: {str(e)}")
+                    # 予期しないエラー
+                    logger.error(f"行{row_count}の処理で予期しないエラー: {str(e)}")
+                    # 重大なエラーなら処理を中断するために例外を再スロー
+                    raise
             
             # 残りのレコードをコミット
             if records:
                 db.bulk_save_objects(records)
                 db.commit()
                 
-            logger.info(f"インポート完了: 合計{i}件")
+            logger.info(f"インポート完了: 合計{row_count}件")
             return True
             
-    except Exception as e:
-        logger.error(f"インポート中にエラーが発生: {str(e)}")
+    except (IOError, csv.Error) as e:
+        # ファイル関連のエラー
+        logger.error(f"ファイル読み込み中にエラーが発生: {str(e)}")
         db.rollback()
         return False
+    except Exception as e:
+        # その他の予期しないエラー
+        logger.error(f"インポート中に予期しないエラーが発生: {str(e)}")
+        db.rollback()
+        # 呼び出し元でエラーハンドリングできるようにスタックトレース情報を保持
+        raise
     finally:
         db.close()
 

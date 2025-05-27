@@ -25,4 +25,17 @@ CREATE INDEX IF NOT EXISTS idx_influencer_posts_likes ON influencer_posts (likes
 -- コメント数に対するインデックス（ランキング表示に使用）
 CREATE INDEX IF NOT EXISTS idx_influencer_posts_comments ON influencer_posts (comments DESC);
 
-CREATE INDEX IF NOT EXISTS idx_influencer_posts_influencer_id ON influencer_posts (influencer_id);
+-- updated_atカラムを自動更新するためのトリガー関数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- テーブル更新時にトリガー関数を実行するトリガー
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON influencer_posts
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();

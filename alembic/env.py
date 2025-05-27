@@ -18,7 +18,7 @@ fileConfig(config.config_file_name)
 
 # モデル定義をインポートするためにプロジェクトルートをパスに追加
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.models.database_models import Base
+from app.models.base import Base
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

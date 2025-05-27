@@ -1,7 +1,9 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# モデル基底クラスをインポート
+from app.models.base import Base
 
 # DB接続設定: 環境変数 or デフォルト値
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/instagram_analytics")
@@ -16,9 +18,6 @@ engine = create_engine(
 
 # DBセッションファクトリ
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# モデル定義の基底クラス
-Base = declarative_base()
 
 # FastAPI依存性注入用DBセッション
 def get_db():
