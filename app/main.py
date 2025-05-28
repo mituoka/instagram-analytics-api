@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import influencer
+from app.routers import influencer, analytics
 from app.models import base
 from app.database.connection import engine
 
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(
     influencer.router, prefix="/api/v1/influencers", tags=["influencers"]
 )
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 
 @app.get("/")
