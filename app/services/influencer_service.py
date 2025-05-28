@@ -113,4 +113,3 @@ def get_top_influencers_by_comments(db: Session, limit: int = 10):
         }
         for result in results
     ]
-

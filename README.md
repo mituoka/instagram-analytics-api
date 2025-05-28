@@ -32,8 +32,10 @@
 - **インフルエンサーランキング**
   - 平均いいね数の多い順でのランキング
   - 平均コメント数の多い順でのランキング
-- **今後の拡張予定**
-  - テキスト分析（キーワード出現頻度分析）
+- **テキスト分析**
+  - インフルエンサーの投稿から頻出キーワードを抽出
+  - トレンドキーワードの分析
+  - エンゲージメントの高い投稿のキーワード分析
 
 ## 🛠️ 技術スタック
 
@@ -44,6 +46,7 @@
 | **ORM**              | [SQLAlchemy](https://www.sqlalchemy.org/)                                             |
 | **コンテナ化**       | [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) |
 | **マイグレーション** | [Alembic](https://alembic.sqlalchemy.org/)                                            |
+| **テキスト分析**     | [Janome](https://mocobeta.github.io/janome/)                                          |
 | **テスト**           | [pytest](https://pytest.org/)                                                         |
 
 ## 🚀 開発環境のセットアップ
@@ -91,8 +94,6 @@ docker-compose up -d
 docker-compose exec app python -m cli.import_csv --file /app/data/your_data.csv
 ```
 
-##### CSV ファイルの形式要件
-
 CSV ファイルは以下のカラムを含む必要があります。
 
 | カラム名        | 型     | 説明                                 | 例                              |
@@ -124,11 +125,14 @@ Swagger UI ドキュメントは `http://localhost:8000/docs` で確認できま
 
 ### 🔍 API 一覧
 
-| エンドポイント                              | メソッド | 説明                           | パラメータ                           |
-| ------------------------------------------- | -------- | ------------------------------ | ------------------------------------ |
-| `/api/v1/influencers/{influencer_id}/stats` | GET      | インフルエンサーの統計情報取得 | `influencer_id`: インフルエンサー ID |
-| `/api/v1/influencers/ranking/likes`         | GET      | いいね数ランキング             | `limit`: 取得件数（1-100）           |
-| `/api/v1/influencers/ranking/comments`      | GET      | コメント数ランキング           | `limit`: 取得件数（1-100）           |
+| エンドポイント                               | メソッド | 説明                               | パラメータ                                                                            |
+| -------------------------------------------- | -------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| `/api/v1/influencers/{influencer_id}/stats`  | GET      | インフルエンサーの統計情報取得     | `influencer_id`: インフルエンサー ID                                                  |
+| `/api/v1/influencers/ranking/likes`          | GET      | いいね数ランキング                 | `limit`: 取得件数（1-100）                                                            |
+| `/api/v1/influencers/ranking/comments`       | GET      | コメント数ランキング               | `limit`: 取得件数（1-100）                                                            |
+| `/api/v1/analytics/{influencer_id}/keywords` | GET      | インフルエンサーの頻出キーワード   | `influencer_id`: インフルエンサー ID<br>`limit`: 取得キーワード数（1-100）            |
+| `/api/v1/analytics/trending-keywords`        | GET      | トレンドキーワード分析             | `days`: 過去何日分のデータを分析するか（1-365）<br>`limit`: 取得キーワード数（1-100） |
+| `/api/v1/analytics/engagement-keywords`      | GET      | 高エンゲージメント投稿のキーワード | `engagement_type`: "likes" または "comments"<br>`limit`: 取得キーワード数（1-100）    |
 
 ### 📊 インフルエンサー統計情報 API
 
@@ -205,6 +209,100 @@ GET /api/v1/influencers/ranking/comments?limit=5
   }
   // ...他のインフルエンサー
 ]
+```
+
+### 📊 インフルエンサーの頻出キーワード分析 API
+
+指定されたインフルエンサーの投稿テキストから、頻出する名詞を抽出します。Janome 形態素解析エンジンを使用した日本語テキスト分析に対応しています。
+
+#### リクエスト
+
+```http
+GET /api/v1/analytics/{influencer_id}/keywords?limit=10
+```
+
+#### レスポンス例
+
+```json
+{
+  "keywords": [
+    {
+      "word": "さん",
+      "count": 16
+    },
+    {
+      "word": "是非",
+      "count": 12
+    },
+    {
+      "word": "洋服",
+      "count": 8
+    }
+    // ...他のキーワード
+  ],
+  "total_analyzed_posts": 48,
+  "time_period_days": null
+}
+```
+
+### 📈 トレンドキーワード分析 API
+
+過去指定期間の投稿から、トレンドキーワード（頻出名詞）を抽出します。デフォルトでは過去 30 日間のデータを分析します。
+
+#### リクエスト
+
+```http
+GET /api/v1/analytics/trending-keywords?days=30&limit=10
+```
+
+#### レスポンス例
+
+```json
+{
+  "keywords": [
+    {
+      "word": "コラボ",
+      "count": 42
+    },
+    {
+      "word": "キャンペーン",
+      "count": 38
+    }
+    // ...他のキーワード
+  ],
+  "total_analyzed_posts": 256,
+  "time_period_days": 30
+}
+```
+
+### 📊 エンゲージメントキーワード分析 API
+
+エンゲージメント（いいね数またはコメント数）が高い投稿から特徴的なキーワードを抽出します。高いエンゲージメントを獲得している投稿に共通するキーワードを分析できます。
+
+#### リクエスト
+
+```http
+GET /api/v1/analytics/engagement-keywords?engagement_type=likes&limit=10
+```
+
+#### レスポンス例
+
+```json
+{
+  "keywords": [
+    {
+      "word": "プレゼント",
+      "count": 28
+    },
+    {
+      "word": "キャンペーン",
+      "count": 25
+    }
+    // ...他のキーワード
+  ],
+  "engagement_type": "likes",
+  "total_analyzed_posts": 100
+}
 ```
 
 ## 📁 プロジェクト構成

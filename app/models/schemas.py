@@ -22,9 +22,7 @@ class InfluencerPost(InfluencerPostBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = (
-            True  # pydantic v2では orm_mode の代わりに from_attributes を使用
-        )
+        from_attributes = True
 
 
 # 統計情報のスキーマ
@@ -46,3 +44,17 @@ class InfluencerRanking(BaseModel):
 class KeywordCount(BaseModel):
     word: str = Field(..., description="抽出された名詞")
     count: int = Field(..., description="出現回数")
+
+
+# キーワード分析レスポンスのスキーマ
+class KeywordAnalysisResponse(BaseModel):
+    keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
+    total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
+    time_period_days: Optional[int] = Field(None, description="分析対象期間（日数）")
+
+
+# 高エンゲージメントキーワード分析のスキーマ
+class EngagementKeywordsResponse(BaseModel):
+    keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
+    engagement_type: str = Field(..., description="エンゲージメント種別（likes または comments）")
+    total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
