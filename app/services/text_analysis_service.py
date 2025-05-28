@@ -118,38 +118,31 @@ def get_influencer_keywords(
             status_code=404, detail=f"Influencer with ID {influencer_id} not found"
         )
 
-    # すべての投稿から名詞を抽出して出現頻度をカウント（並行処理で高速化）
+    # 名詞抽出（並行処理）
     all_nouns = []
 
-    # テキスト分析を並行処理する関数
     def process_text(text):
         if text:
             return extract_nouns(text)
         return []
 
-    # 並行処理でテキスト分析を実行
+    # 5スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        # 投稿テキストを並行して処理
         future_to_text = {
             executor.submit(process_text, post.text): post
             for post in posts
             if post.text
         }
 
-        # 結果を収集
         for future in concurrent.futures.as_completed(future_to_text):
             all_nouns.extend(future.result())
 
-    # 名詞の出現頻度をカウント
+    # カウント、ソート、整形
     counter = Counter(all_nouns)
-
-    # 出現頻度の多い順にlimit個取得
     top_keywords = counter.most_common(limit)
-
-    # 結果を整形
     result = [{"word": word, "count": count} for word, count in top_keywords]
 
-    # 結果をキャッシュ（30分 = 1800秒）
+    # キャッシュ保存（30分）
     cache.set(cache_key, result, ttl_seconds=1800)
 
     return result
@@ -194,9 +187,10 @@ def get_trending_keywords(db: Session, days: int = 30, limit: int = 20) -> List[
     if cached_result:
         return cached_result
 
-    # 過去N日間の投稿を取得（日時フィルタリングを追加）
-    # Pythonで日付計算を行い、SQLに渡す
+    # 過去N日間のデータ取得用の日時計算
     cut_off_date = datetime.now() - timedelta(days=days)
+    
+    # 期間内の投稿を取得
     posts = (
         db.query(InfluencerPost).filter(InfluencerPost.post_date >= cut_off_date).all()
     )
@@ -204,47 +198,38 @@ def get_trending_keywords(db: Session, days: int = 30, limit: int = 20) -> List[
     if not posts:
         return []
 
-    # 最終更新日時をチェック（将来的にキャッシュ無効化に使用）
-    # Pythonで日付計算を行い、SQLに渡す
-    cut_off_date = datetime.now() - timedelta(days=days)
+    # キャッシュ制御用の最終更新日時チェック
     _ = (
         db.query(func.max(InfluencerPost.updated_at))
         .filter(InfluencerPost.post_date >= cut_off_date)
         .scalar()
     )
 
-    # すべての投稿から名詞を抽出して出現頻度をカウント（並行処理で高速化）
+    # 投稿から名詞を抽出（並行処理で高速化）
     all_nouns = []
 
-    # テキスト分析を並行処理する関数
     def process_text(text):
         if text:
             return extract_nouns(text)
         return []
 
-    # 並行処理でテキスト分析を実行（最大10ワーカー）
+    # 最大10スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        # 投稿テキストを並行して処理
         future_to_text = {
             executor.submit(process_text, post.text): post
             for post in posts
             if post.text
         }
 
-        # 結果を収集
         for future in concurrent.futures.as_completed(future_to_text):
             all_nouns.extend(future.result())
 
-    # 名詞の出現頻度をカウント
+    # カウント、ソート、整形
     counter = Counter(all_nouns)
-
-    # 出現頻度の多い順にlimit個取得
     top_keywords = counter.most_common(limit)
-
-    # 結果を整形
     result = [{"word": word, "count": count} for word, count in top_keywords]
 
-    # 結果をキャッシュ（1時間 = 3600秒）
+    # キャッシュ保存（1時間）
     cache.set(cache_key, result, ttl_seconds=3600)
 
     return result
@@ -300,38 +285,31 @@ def analyze_keywords_by_engagement(
     if not posts:
         return []
 
-    # すべての投稿から名詞を抽出して出現頻度をカウント（並行処理で高速化）
+    # 名詞を抽出（並行処理）
     all_nouns = []
 
-    # テキスト分析を並行処理する関数
     def process_text(text):
         if text:
             return extract_nouns(text)
         return []
 
-    # 並行処理でテキスト分析を実行（最大8ワーカー）
+    # 最大8スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        # 投稿テキストを並行して処理
         future_to_text = {
             executor.submit(process_text, post.text): post
             for post in posts
             if post.text
         }
 
-        # 結果を収集
         for future in concurrent.futures.as_completed(future_to_text):
             all_nouns.extend(future.result())
 
-    # 名詞の出現頻度をカウント
+    # カウント、ソート、整形
     counter = Counter(all_nouns)
-
-    # 出現頻度の多い順にlimit個取得
     top_keywords = counter.most_common(limit)
-
-    # 結果を整形
     result = [{"word": word, "count": count} for word, count in top_keywords]
 
-    # 結果をキャッシュ（1時間 = 3600秒）
+    # キャッシュ保存（1時間）
     cache.set(cache_key, result, ttl_seconds=3600)
 
     return result
