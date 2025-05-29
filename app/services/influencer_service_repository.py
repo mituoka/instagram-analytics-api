@@ -26,10 +26,10 @@ def get_influencer_stats(db: Session, influencer_id: int) -> Dict[str, Any]:
     """
     # リポジトリをインスタンス化
     repository = InfluencerPostRepository(db)
-    
+
     # インフルエンサーの統計情報を取得
     stats = repository.get_influencer_stats(influencer_id)
-    
+
     # 該当するインフルエンサーの投稿が見つからない場合
     if not stats:
         raise HTTPException(
@@ -58,7 +58,7 @@ def get_top_influencers_by_likes(db: Session, limit: int = 10) -> List[Dict[str,
     """
     # リポジトリをインスタンス化
     repository = InfluencerPostRepository(db)
-    
+
     # いいね数の多い順にランキング取得
     results = repository.get_top_by_likes(limit)
 
@@ -72,7 +72,9 @@ def get_top_influencers_by_likes(db: Session, limit: int = 10) -> List[Dict[str,
     ]
 
 
-def get_top_influencers_by_comments(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
+def get_top_influencers_by_comments(
+    db: Session, limit: int = 10
+) -> List[Dict[str, Any]]:
     """
     平均コメント数の多い順にインフルエンサーをランキング
 
@@ -85,7 +87,7 @@ def get_top_influencers_by_comments(db: Session, limit: int = 10) -> List[Dict[s
     """
     # リポジトリをインスタンス化
     repository = InfluencerPostRepository(db)
-    
+
     # コメント数の多い順にランキング取得
     results = repository.get_top_by_comments(limit)
 

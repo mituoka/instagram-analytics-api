@@ -189,7 +189,7 @@ def get_trending_keywords(db: Session, days: int = 30, limit: int = 20) -> List[
 
     # 過去N日間のデータ取得用の日時計算
     cut_off_date = datetime.now() - timedelta(days=days)
-    
+
     # 期間内の投稿を取得
     posts = (
         db.query(InfluencerPost).filter(InfluencerPost.post_date >= cut_off_date).all()

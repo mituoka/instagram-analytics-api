@@ -24,13 +24,9 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     """コマンドライン引数のパース"""
-    parser = argparse.ArgumentParser(
-        description="CSVファイルからインフルエンサー投稿データをインポート"
-    )
+    parser = argparse.ArgumentParser(description="CSVファイルからインフルエンサー投稿データをインポート")
     parser.add_argument("--file", required=True, help="インポートするCSVファイルのパス")
-    parser.add_argument(
-        "--batch-size", type=int, default=1000, help="一度にコミットするレコード数"
-    )
+    parser.add_argument("--batch-size", type=int, default=1000, help="一度にコミットするレコード数")
     return parser.parse_args()
 
 
@@ -47,9 +43,7 @@ def validate_csv_columns(reader, required_columns):
     """
     missing_columns = [col for col in required_columns if col not in reader.fieldnames]
     if missing_columns:
-        logger.error(
-            f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}"
-        )
+        logger.error(f"CSVヘッダーに必須カラムが不足しています: {', '.join(missing_columns)}")
         return False
     return True
 

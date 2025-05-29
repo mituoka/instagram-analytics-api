@@ -2,7 +2,7 @@
 インフルエンサーデータのAPIエンドポイント
 """
 
-from fastapi import APIRouter, Depends, Query, Path, HTTPException
+from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.orm import Session
 from typing import List
 
