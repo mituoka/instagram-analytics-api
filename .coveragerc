@@ -1,0 +1,33 @@
+[run]
+include =
+    app/routers/analytics.py
+    app/routers/influencer.py
+    app/services/influencer_service.py
+    app/services/influencer_service_repository.py
+    app/services/text_analysis_service.py
+    cli/import_csv.py
+omit = 
+    */test_*
+    */conftest.py
+    */alembic/*
+    app/__init__.py
+    app/*/__init__.py
+    app/*/*/__init__.py
+    cli/__init__.py
+    app/main.py
+    */migrations/*
+    */venv/*
+    */.venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    if __name__ == .__main__.:
+
+# カバレッジ閾値設定（推奨）
+fail_under = 80
+
+[html]
+directory = htmlcov

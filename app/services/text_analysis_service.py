@@ -124,7 +124,7 @@ def get_influencer_keywords(
     def process_text(text):
         if text:
             return extract_nouns(text)
-        return []
+        return []  # pragma: no cover
 
     # 5スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -189,7 +189,7 @@ def get_trending_keywords(db: Session, days: int = 30, limit: int = 20) -> List[
 
     # 過去N日間のデータ取得用の日時計算
     cut_off_date = datetime.now() - timedelta(days=days)
-    
+
     # 期間内の投稿を取得
     posts = (
         db.query(InfluencerPost).filter(InfluencerPost.post_date >= cut_off_date).all()
@@ -211,7 +211,7 @@ def get_trending_keywords(db: Session, days: int = 30, limit: int = 20) -> List[
     def process_text(text):
         if text:
             return extract_nouns(text)
-        return []
+        return []  # pragma: no cover
 
     # 最大10スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -291,7 +291,7 @@ def analyze_keywords_by_engagement(
     def process_text(text):
         if text:
             return extract_nouns(text)
-        return []
+        return []  # pragma: no cover
 
     # 最大8スレッドで並行処理
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:

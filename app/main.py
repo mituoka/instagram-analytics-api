@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,7 +7,9 @@ from app.models import base
 from app.database.connection import engine
 
 # 開発環境ではテーブル自動作成（本番環境ではAlembicでマイグレーション管理を推奨）
-base.Base.metadata.create_all(bind=engine)
+# テスト環境（CI）では実行しない
+if not os.getenv("TESTING"):
+    base.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Instagram Analytics API",
