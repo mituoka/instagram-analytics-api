@@ -8,7 +8,7 @@ from fastapi import HTTPException
 class TestAnalyticsFullCoverage:
     """アナリティクスAPIの完全カバレッジ向上用テスト"""
 
-    @patch("app.services.text_analysis_service.get_influencer_keywords")
+    @patch("app.routers.analytics.text_analysis_service.get_influencer_keywords")
     def test_get_influencer_keywords_http_exception(
         self, mock_get_keywords, api_test_client
     ):
@@ -25,7 +25,7 @@ class TestAnalyticsFullCoverage:
         assert response.status_code == 404
         assert response.json()["detail"] == "Not found"
 
-    @patch("app.services.text_analysis_service.get_trending_keywords")
+    @patch("app.routers.analytics.text_analysis_service.get_trending_keywords")
     def test_trending_keyword_empty_result(self, mock_get_trending, api_test_client):
         """トレンドキーワードAPI - 空の結果を返すケース"""
         # 空のリストを返す
@@ -39,7 +39,7 @@ class TestAnalyticsFullCoverage:
         data = response.json()
         assert data["keywords"] == []
 
-    @patch("app.services.text_analysis_service.get_trending_keywords")
+    @patch("app.routers.analytics.text_analysis_service.get_trending_keywords")
     def test_trending_keywords_exception(self, mock_get_trending, api_test_client):
         """トレンドキーワードAPI - 例外が発生するケース"""
         # 例外を発生させる
@@ -52,7 +52,7 @@ class TestAnalyticsFullCoverage:
         assert response.status_code == 500
         assert "Error analyzing trending keywords" in response.json()["detail"]
 
-    @patch("app.services.text_analysis_service.analyze_keywords_by_engagement")
+    @patch("app.routers.analytics.text_analysis_service.analyze_keywords_by_engagement")
     def test_engagement_keywords_error_handling(self, mock_analyze, api_test_client):
         """エンゲージメントキーワード分析の例外ハンドリング"""
         # 一般的な例外を発生させる

@@ -3,7 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 class TestAnalyticsEndpoints:
-    @patch("app.services.text_analysis_service.get_influencer_keywords")
+    @patch("app.routers.analytics.text_analysis_service.get_influencer_keywords")
     def test_get_influencer_keywords_success(
         self, mock_get_keywords, api_test_client, mock_keywords
     ):
