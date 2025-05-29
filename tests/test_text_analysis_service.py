@@ -11,9 +11,6 @@ from app.services.text_analysis_service import (
 from app.dependencies.cache_utils import cache
 from fastapi import HTTPException
 from datetime import datetime, timedelta
-import json
-import hashlib
-import concurrent.futures
 
 
 class TestTextAnalysisService:
