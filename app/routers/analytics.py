@@ -7,9 +7,6 @@ from fastapi import APIRouter, Depends, Query, Path, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
-import sys
-import os
-import logging
 
 from app.database.connection import get_db
 from app.services import text_analysis_service
@@ -99,30 +96,15 @@ def get_trending_keywords(
                 status_code=400, detail="year_monthとmonthsは一緒に指定する必要があります"
             )
 
-        # テスト環境でモックが設定されている場合はそれを使用（CIでのテスト安定化用）
-        import os
-        if os.environ.get("TESTING") == "true" and "pytest" in sys.modules:
-            # テスト時はモックされた値を信頼する
-            try:
-                keywords = text_analysis_service.get_trending_keywords(
-                    db, limit=limit, year_month=year_month, months=months
-                )
-            except Exception as e:
-                # テストではエラーを抑制してダミーデータを返す
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"テスト中にキーワード取得でエラー発生: {str(e)}")
-                keywords = []
-        else:
-            # 本番環境では通常通りエラーを発生させる
-            try:
-                keywords = text_analysis_service.get_trending_keywords(
-                    db, limit=limit, year_month=year_month, months=months
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Error analyzing trending keywords: {str(e)}"
-                )
+        # トレンドキーワードを取得
+        try:
+            keywords = text_analysis_service.get_trending_keywords(
+                db, limit=limit, year_month=year_month, months=months
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Error analyzing trending keywords: {str(e)}"
+            )
 
         # 投稿数を取得
         from sqlalchemy import func
@@ -132,40 +114,28 @@ def get_trending_keywords(
         query = db.query(func.count(InfluencerPost.id))
 
         if year_month is not None and months is not None:
-            try:
-                start_year, start_month = map(int, year_month.split("-"))
-                start_date = datetime(start_year, start_month, 1)
+            start_year, start_month = map(int, year_month.split("-"))
+            start_date = datetime(start_year, start_month, 1)
 
-                # 月数を加算して終了日を計算
-                if start_month + months <= 12:
-                    end_date = datetime(start_year, start_month + months, 1)
-                else:
-                    years_to_add = (start_month + months - 1) // 12
-                    end_month = (start_month + months - 1) % 12 + 1
-                    end_date = datetime(start_year + years_to_add, end_month, 1)
+            # 月数を加算して終了日を計算
+            if start_month + months <= 12:
+                end_date = datetime(start_year, start_month + months, 1)
+            else:
+                years_to_add = (start_month + months - 1) // 12
+                end_month = (start_month + months - 1) % 12 + 1
+                end_date = datetime(start_year + years_to_add, end_month, 1)
 
-                query = query.filter(
-                    InfluencerPost.post_date >= start_date,
-                    InfluencerPost.post_date < end_date,
-                )
-                # 概算の日数
-                time_period_days = (end_date - start_date).days
-            except (ValueError, TypeError, Exception) as e:
-                # 日付計算でエラーが発生した場合はログに記録し、安全な値を使用
-                logger = logging.getLogger(__name__)
-                logger.warning(f"日付計算でエラーが発生しました: {str(e)}")
-                time_period_days = None
-                # テスト環境では続行、本番環境ではエラーを再送出しない（フォールバックして処理継続）
+            query = query.filter(
+                InfluencerPost.post_date >= start_date,
+                InfluencerPost.post_date < end_date,
+            )
+            # 概算の日数
+            time_period_days = (end_date - start_date).days
         else:
             # 全期間の場合
             time_period_days = None
 
-        try:
-            posts_count = query.scalar() or 0
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.warning(f"投稿数取得でエラーが発生しました: {str(e)}")
-            posts_count = 0
+        posts_count = query.scalar() or 0
 
         return KeywordAnalysisResponse(
             keywords=keywords,
@@ -175,20 +145,6 @@ def get_trending_keywords(
             months=months,
         )
     except Exception as e:
-        logger = logging.getLogger(__name__)
-        logger.error(f"トレンドキーワード分析でエラーが発生しました: {str(e)}")
-        
-        # テスト環境ではエラーを抑制してダミーデータを返す
-        if "pytest" in sys.modules or os.environ.get("TESTING") == "true":
-            return KeywordAnalysisResponse(
-                keywords=[], 
-                total_analyzed_posts=0,
-                time_period_days=None,
-                start_year_month=year_month,
-                months=months
-            )
-        
-        # 本番環境では例外を再送出
         raise HTTPException(
             status_code=500, detail=f"Error analyzing trending keywords: {str(e)}"
         )
