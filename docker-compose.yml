@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app/app
+      - .:/app
       - ./tests:/app/tests
     depends_on:
       db:
@@ -18,7 +18,6 @@ services:
     environment:
       - SQL_ECHO=False
       - MAX_WORKERS=4
-    command: ["./docker/app/entrypoint.sh"]
     restart: unless-stopped
 
   db:
