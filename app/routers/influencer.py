@@ -8,12 +8,13 @@ from typing import List
 
 from app.database.connection import get_db
 from app.models.schemas import InfluencerRanking
+# from app.models.schemas import InfluencerStats  # コメントアウトしたAPIで使用
 from app.services import influencer_service
 
 # ルーター定義
 router = APIRouter()
 
-
+# 仕様に沿わないAPIのルーター処理のため除外
 # @router.get(
 #     "/{influencer_id}/stats",
 #     response_model=InfluencerStats,

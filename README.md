@@ -27,15 +27,11 @@
 
 ## ✨ 機能一覧
 
-- **インフルエンサー統計情報取得**
-  - 指定したインフルエンサー ID の平均いいね数、コメント数、投稿数などの統計情報を取得
 - **インフルエンサーランキング**
   - 平均いいね数の多い順でのランキング
   - 平均コメント数の多い順でのランキング
 - **テキスト分析**
   - インフルエンサーの投稿から頻出キーワードを抽出
-  - トレンドキーワードの分析
-  - エンゲージメントの高い投稿のキーワード分析
 
 ## 🛠️ 技術スタック
 
@@ -125,35 +121,11 @@ Swagger UI ドキュメントは `http://localhost:8000/docs` で確認できま
 
 ### 🔍 API 一覧
 
-| エンドポイント                               | メソッド | 説明                               | パラメータ                                                                                                                                                                                      |
-| -------------------------------------------- | -------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/v1/influencers/{influencer_id}/stats`  | GET      | インフルエンサーの統計情報取得     | `influencer_id`: インフルエンサー ID                                                                                                                                                            |
-| `/api/v1/influencers/ranking/likes`          | GET      | いいね数ランキング                 | `limit`: 取得件数（1-100）                                                                                                                                                                      |
-| `/api/v1/influencers/ranking/comments`       | GET      | コメント数ランキング               | `limit`: 取得件数（1-100）                                                                                                                                                                      |
-| `/api/v1/analytics/{influencer_id}/keywords` | GET      | インフルエンサーの頻出キーワード   | `influencer_id`: インフルエンサー ID<br>`limit`: 取得キーワード数（1-100）                                                                                                                      |
-| `/api/v1/analytics/trending-keywords`        | GET      | トレンドキーワード分析             | `days`: 過去何日分のデータを分析するか（1-365、省略可）<br>`year_month`: 分析開始年月（YYYY-MM 形式、省略可）<br>`months`: 分析期間（月数、1-36、省略可）<br>`limit`: 取得キーワード数（1-100） |
-| `/api/v1/analytics/engagement-keywords`      | GET      | 高エンゲージメント投稿のキーワード | `engagement_type`: "likes" または "comments"<br>`limit`: 取得キーワード数（1-100）                                                                                                              |
-
-### 📊 インフルエンサー統計情報 API
-
-指定されたインフルエンサー ID の統計情報（平均いいね数、平均コメント数、投稿数）を取得します。
-
-#### リクエスト
-
-```http
-GET /api/v1/influencers/{influencer_id}/stats
-```
-
-#### レスポンス例
-
-```json
-{
-  "influencer_id": 1,
-  "avg_likes": 119515.75,
-  "avg_comments": 1586.08,
-  "total_posts": 24
-}
-```
+| エンドポイント                               | メソッド | 説明                             | パラメータ                                                                 |
+| -------------------------------------------- | -------- | -------------------------------- | -------------------------------------------------------------------------- |
+| `/api/v1/influencers/ranking/likes`          | GET      | いいね数ランキング               | `limit`: 取得件数（1-100）                                                 |
+| `/api/v1/influencers/ranking/comments`       | GET      | コメント数ランキング             | `limit`: 取得件数（1-100）                                                 |
+| `/api/v1/analytics/{influencer_id}/keywords` | GET      | インフルエンサーの頻出キーワード | `influencer_id`: インフルエンサー ID<br>`limit`: 取得キーワード数（1-100） |
 
 ### 📈 いいね数ランキング API
 
@@ -240,88 +212,7 @@ GET /api/v1/analytics/{influencer_id}/keywords?limit=10
     }
     // ...他のキーワード
   ],
-  "total_analyzed_posts": 48,
-  "time_period_days": null
-}
-```
-
-### 📈 トレンドキーワード分析 API
-
-指定期間の投稿から、トレンドキーワード（頻出名詞）を抽出します。指定方法は以下の 2 パターンから選べます：
-
-1. `year_month`と`months`パラメータで特定の年月から何ヶ月分のデータを分析します
-2. パラメータを指定しない場合全ての期間のデータを分析します
-
-パラメータがすべて省略された場合は、すべての期間のデータを分析します。
-
-#### リクエスト例
-
-**2024 年 1 月から 3 ヶ月間のデータを分析する場合:**
-
-```http
-GET /api/v1/analytics/trending-keywords?year_month=2024-01&months=3&limit=10
-```
-
-**すべての期間のデータを分析する場合:**
-
-```http
-GET /api/v1/analytics/trending-keywords?limit=10
-```
-
-> ### 注意事項
->
-> - データ量によっては処理に数十秒～数分かかる場合があります
-> - 大規模なデータセットの場合はタイムアウトを避けるため、期間を指定することを推奨します
-
-#### レスポンス例
-
-```json
-{
-  "keywords": [
-    {
-      "word": "コラボ",
-      "count": 42
-    },
-    {
-      "word": "キャンペーン",
-      "count": 38
-    }
-    // ...他のキーワード
-  ],
-  "total_analyzed_posts": 256,
-  "time_period_days": 30,
-  "start_year_month": "2024-01",
-  "months": 3
-}
-```
-
-### 📊 エンゲージメントキーワード分析 API
-
-エンゲージメント（いいね数またはコメント数）が高い投稿から特徴的なキーワードを抽出します。高いエンゲージメントを獲得している投稿に共通するキーワードを分析できます。
-
-#### リクエスト
-
-```http
-GET /api/v1/analytics/engagement-keywords?engagement_type=likes&limit=10
-```
-
-#### レスポンス例
-
-```json
-{
-  "keywords": [
-    {
-      "word": "プレゼント",
-      "count": 28
-    },
-    {
-      "word": "キャンペーン",
-      "count": 25
-    }
-    // ...他のキーワード
-  ],
-  "engagement_type": "likes",
-  "total_analyzed_posts": 100
+  "total_analyzed_posts": 48
 }
 ```
 

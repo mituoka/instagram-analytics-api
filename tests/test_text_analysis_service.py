@@ -56,24 +56,6 @@ class TestTextAnalysisService:
         mock_tokenizer_class.assert_not_called()
         assert tokenizer2 == mock_tokenizer_instance
 
-    # def test_get_cache_key(self):
-    #     """キャッシュキー生成のテスト"""
-    #     # シンプルなキー
-    #     key1 = get_cache_key("test")
-    #     assert "test" in key1
-
-    #     # パラメータ付きのキー
-    #     key2 = get_cache_key("test", param1="value1", param2=123)
-    #     key3 = get_cache_key("test", param2=123, param1="value1")  # パラメータ順序が異なる
-
-    #     # 同じパラメータなら順序が違っても同じキーになるはず
-    #     assert key2 == key3
-
-    #     # 異なるパラメータなら異なるキーになるはず
-    #     key4 = get_cache_key("test", param1="value2")
-    #     assert key2 != key4
-
-
 @patch("app.services.text_analysis_service.extract_nouns")
 def test_get_influencer_keywords(mock_extract_nouns, mock_db_session):
     """インフルエンサーのキーワード抽出テスト"""
