@@ -1,10 +1,19 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import influencer, analytics
 from app.models import base
 from app.database.connection import engine
+
+# ロガー設定
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger("app")
+logger.setLevel(logging.INFO)
 
 # 開発環境ではテーブル自動作成（本番環境ではAlembicでマイグレーション管理を推奨）
 # テスト環境（CI）では実行しない

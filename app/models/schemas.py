@@ -50,6 +50,8 @@ class KeywordAnalysisResponse(BaseModel):
     keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
     total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
     time_period_days: Optional[int] = Field(None, description="分析対象期間（日数）")
+    start_year_month: Optional[str] = Field(None, description="分析開始年月（YYYY-MM形式）")
+    months: Optional[int] = Field(None, description="分析期間（月数）")
 
 
 # 高エンゲージメントキーワード分析のスキーマ

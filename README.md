@@ -125,14 +125,14 @@ Swagger UI ドキュメントは `http://localhost:8000/docs` で確認できま
 
 ### 🔍 API 一覧
 
-| エンドポイント                               | メソッド | 説明                               | パラメータ                                                                            |
-| -------------------------------------------- | -------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
-| `/api/v1/influencers/{influencer_id}/stats`  | GET      | インフルエンサーの統計情報取得     | `influencer_id`: インフルエンサー ID                                                  |
-| `/api/v1/influencers/ranking/likes`          | GET      | いいね数ランキング                 | `limit`: 取得件数（1-100）                                                            |
-| `/api/v1/influencers/ranking/comments`       | GET      | コメント数ランキング               | `limit`: 取得件数（1-100）                                                            |
-| `/api/v1/analytics/{influencer_id}/keywords` | GET      | インフルエンサーの頻出キーワード   | `influencer_id`: インフルエンサー ID<br>`limit`: 取得キーワード数（1-100）            |
-| `/api/v1/analytics/trending-keywords`        | GET      | トレンドキーワード分析             | `days`: 過去何日分のデータを分析するか（1-365）<br>`limit`: 取得キーワード数（1-100） |
-| `/api/v1/analytics/engagement-keywords`      | GET      | 高エンゲージメント投稿のキーワード | `engagement_type`: "likes" または "comments"<br>`limit`: 取得キーワード数（1-100）    |
+| エンドポイント                               | メソッド | 説明                               | パラメータ                                                                                                                                                                                      |
+| -------------------------------------------- | -------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/v1/influencers/{influencer_id}/stats`  | GET      | インフルエンサーの統計情報取得     | `influencer_id`: インフルエンサー ID                                                                                                                                                            |
+| `/api/v1/influencers/ranking/likes`          | GET      | いいね数ランキング                 | `limit`: 取得件数（1-100）                                                                                                                                                                      |
+| `/api/v1/influencers/ranking/comments`       | GET      | コメント数ランキング               | `limit`: 取得件数（1-100）                                                                                                                                                                      |
+| `/api/v1/analytics/{influencer_id}/keywords` | GET      | インフルエンサーの頻出キーワード   | `influencer_id`: インフルエンサー ID<br>`limit`: 取得キーワード数（1-100）                                                                                                                      |
+| `/api/v1/analytics/trending-keywords`        | GET      | トレンドキーワード分析             | `days`: 過去何日分のデータを分析するか（1-365、省略可）<br>`year_month`: 分析開始年月（YYYY-MM 形式、省略可）<br>`months`: 分析期間（月数、1-36、省略可）<br>`limit`: 取得キーワード数（1-100） |
+| `/api/v1/analytics/engagement-keywords`      | GET      | 高エンゲージメント投稿のキーワード | `engagement_type`: "likes" または "comments"<br>`limit`: 取得キーワード数（1-100）                                                                                                              |
 
 ### 📊 インフルエンサー統計情報 API
 
@@ -247,12 +247,31 @@ GET /api/v1/analytics/{influencer_id}/keywords?limit=10
 
 ### 📈 トレンドキーワード分析 API
 
-過去指定期間の投稿から、トレンドキーワード（頻出名詞）を抽出します。デフォルトでは過去 30 日間のデータを分析します。
+指定期間の投稿から、トレンドキーワード（頻出名詞）を抽出します。指定方法は以下の 2 パターンから選べます：
 
-#### リクエスト
+1. `year_month`と`months`パラメータで特定の年月から何ヶ月分のデータを分析します
+2. パラメータを指定しない場合全ての期間のデータを分析します
+
+パラメータがすべて省略された場合は、すべての期間のデータを分析します。
+
+#### リクエスト例
+
+**過去 30 日間のデータを分析する場合:**
 
 ```http
 GET /api/v1/analytics/trending-keywords?days=30&limit=10
+```
+
+**2024 年 1 月から 3 ヶ月間のデータを分析する場合:**
+
+```http
+GET /api/v1/analytics/trending-keywords?year_month=2024-01&months=3&limit=10
+```
+
+**すべての期間のデータを分析する場合:**
+
+```http
+GET /api/v1/analytics/trending-keywords?limit=10
 ```
 
 #### レスポンス例
@@ -271,7 +290,9 @@ GET /api/v1/analytics/trending-keywords?days=30&limit=10
     // ...他のキーワード
   ],
   "total_analyzed_posts": 256,
-  "time_period_days": 30
+  "time_period_days": 30,
+  "start_year_month": "2024-01",
+  "months": 3
 }
 ```
 
