@@ -2,9 +2,8 @@
 analytics.pyのテスト
 APIルーターのテストを行う
 """
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import app
 

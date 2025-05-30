@@ -2,12 +2,12 @@
 インフルエンサーデータのAPIエンドポイント
 """
 
-from fastapi import APIRouter, Depends, Query, Path
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database.connection import get_db
-from app.models.schemas import InfluencerStats, InfluencerRanking
+from app.models.schemas import InfluencerRanking
 from app.services import influencer_service
 
 # ルーター定義

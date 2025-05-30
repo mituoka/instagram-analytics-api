@@ -13,10 +13,7 @@ from sqlalchemy import func
 from typing import List, Dict
 from fastapi import HTTPException
 import re
-import hashlib
-import json
 import concurrent.futures
-from datetime import datetime
 
 from app.models.database_models import InfluencerPost
 from app.dependencies.cache_utils import cache
@@ -129,7 +126,7 @@ def get_influencer_keywords(
     def process_text(text):
         if text:
             return extract_nouns(text)
-        return [] # pragma: no cover
+        return []  # pragma: no cover
 
     max_workers = min(max(os.cpu_count() or 4, 2), 10)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:

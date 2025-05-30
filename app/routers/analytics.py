@@ -6,13 +6,11 @@
 from fastapi import APIRouter, Depends, Query, Path, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional
 
 from app.database.connection import get_db
 from app.services import text_analysis_service
 from app.models.schemas import (
     KeywordAnalysisResponse,
-    EngagementKeywordsResponse,
 )
 from app.models.database_models import InfluencerPost
 

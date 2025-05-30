@@ -67,20 +67,20 @@ class SimpleCache:
 def get_cache_key(prefix: str, **kwargs) -> str:
     """
     キャッシュキーを生成する関数
-    
+
     Args:
         prefix: キャッシュキーのプレフィックス
         **kwargs: キーに含める追加パラメータ
-        
+
     Returns:
         str: 一意のキャッシュキー
     """
     key_parts = []
-    
+
     # パラメータをソートして一貫性を確保
     for k in sorted(kwargs.keys()):
         key_parts.append(f"{k}:{kwargs[k]}")
-        
+
     key_hash = "_".join(key_parts)
     return f"{prefix}:{key_hash}"
 

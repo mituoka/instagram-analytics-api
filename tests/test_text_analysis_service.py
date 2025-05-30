@@ -8,9 +8,8 @@ from app.services.text_analysis_service import (
     get_tokenizer,
     # get_cache_key,
 )
-from app.dependencies.cache_utils import get_cache_key, cache
+from app.dependencies.cache_utils import cache
 from fastapi import HTTPException
-from datetime import datetime, timedelta
 
 
 class TestTextAnalysisService:
@@ -74,6 +73,7 @@ class TestTextAnalysisService:
     #     key4 = get_cache_key("test", param1="value2")
     #     assert key2 != key4
 
+
 @patch("app.services.text_analysis_service.extract_nouns")
 def test_get_influencer_keywords(mock_extract_nouns, mock_db_session):
     """インフルエンサーのキーワード抽出テスト"""
@@ -92,9 +92,9 @@ def test_get_influencer_keywords(mock_extract_nouns, mock_db_session):
     mock_extract_nouns.side_effect = [
         ["インスタグラム", "戦略"],
         ["フォロワー", "獲得", "コツ"],
-        ["料理", "マーケティング"], 
+        ["料理", "マーケティング"],
     ]
-    
+
     # テスト実行
     result = get_influencer_keywords(mock_db_session, 1, 10)
 
@@ -110,7 +110,7 @@ def test_get_influencer_keywords(mock_extract_nouns, mock_db_session):
     assert "戦略" in word_counts
     assert "フォロワー" in word_counts
     assert "獲得" in word_counts
-    
+
     if "マーケティング" in word_counts:
         assert word_counts["マーケティング"] > 0
     else:
@@ -129,7 +129,6 @@ def test_get_influencer_keywords(mock_extract_nouns, mock_db_session):
         get_influencer_keywords(mock_db_session, 999, 10)
     assert excinfo.value.status_code == 404
     assert "Influencer with ID 999 not found" in str(excinfo.value.detail)
-
 
     # @patch("app.services.text_analysis_service.extract_nouns")
     # @patch("app.services.text_analysis_service.datetime")
