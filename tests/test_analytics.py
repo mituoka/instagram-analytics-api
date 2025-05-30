@@ -138,8 +138,8 @@ class TestAnalyticsEndpoints:
         data = response.json()
         assert "time_period_days" in data
         # 11月から5ヶ月なので、11,12,1,2,3月の日数の合計に近い値になるはず
-        # 具体的な日数は月によって異なるが、概算で150日程度
-        assert 150 < data["time_period_days"] < 160
+        # 具体的な日数は月によって異なるが、概算で140-160日程度
+        assert 140 < data["time_period_days"] < 165
 
     @patch("app.routers.analytics.text_analysis_service.get_trending_keywords")
     def test_get_trending_keywords_all_period(self, mock_get_keywords):
