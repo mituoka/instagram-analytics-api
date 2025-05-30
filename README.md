@@ -256,12 +256,6 @@ GET /api/v1/analytics/{influencer_id}/keywords?limit=10
 
 #### リクエスト例
 
-**過去 30 日間のデータを分析する場合:**
-
-```http
-GET /api/v1/analytics/trending-keywords?days=30&limit=10
-```
-
 **2024 年 1 月から 3 ヶ月間のデータを分析する場合:**
 
 ```http
@@ -273,6 +267,11 @@ GET /api/v1/analytics/trending-keywords?year_month=2024-01&months=3&limit=10
 ```http
 GET /api/v1/analytics/trending-keywords?limit=10
 ```
+
+> ### 注意事項
+>
+> - データ量によっては処理に数十秒～数分かかる場合があります
+> - 大規模なデータセットの場合はタイムアウトを避けるため、期間を指定することを推奨します
 
 #### レスポンス例
 

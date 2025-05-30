@@ -55,8 +55,6 @@ def get_influencer_keywords(
         return KeywordAnalysisResponse(
             keywords=keywords, total_analyzed_posts=posts_count
         )
-    except HTTPException as e:
-        raise e
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error analyzing keywords: {str(e)}"
@@ -114,26 +112,23 @@ def get_trending_keywords(
         query = db.query(func.count(InfluencerPost.id))
         
         if year_month is not None and months is not None:
-            try:
-                start_year, start_month = map(int, year_month.split('-'))
-                start_date = datetime(start_year, start_month, 1)
+            start_year, start_month = map(int, year_month.split('-'))
+            start_date = datetime(start_year, start_month, 1)
                 
-                # 月数を加算して終了日を計算
-                if start_month + months <= 12:
-                    end_date = datetime(start_year, start_month + months, 1)
-                else:
-                    years_to_add = (start_month + months - 1) // 12
-                    end_month = (start_month + months - 1) % 12 + 1
-                    end_date = datetime(start_year + years_to_add, end_month, 1)
+            # 月数を加算して終了日を計算
+            if start_month + months <= 12:
+                end_date = datetime(start_year, start_month + months, 1)
+            else:
+                years_to_add = (start_month + months - 1) // 12
+                end_month = (start_month + months - 1) % 12 + 1
+                end_date = datetime(start_year + years_to_add, end_month, 1)
                 
-                query = query.filter(
-                    InfluencerPost.post_date >= start_date,
-                    InfluencerPost.post_date < end_date
-                )
-                # 概算の日数
-                time_period_days = (end_date - start_date).days
-            except (ValueError, TypeError):
-                time_period_days = None
+            query = query.filter(
+                InfluencerPost.post_date >= start_date,
+                InfluencerPost.post_date < end_date
+            )
+            # 概算の日数
+            time_period_days = (end_date - start_date).days
         else:
             # 全期間の場合
             time_period_days = None
@@ -183,13 +178,10 @@ def get_engagement_keywords(
         )
 
         # 分析対象の投稿数（上位100件）
-        try:
-            count_value = db.query(func.count()).select_from(InfluencerPost).scalar()
-            if isinstance(count_value, int):
-                total_posts = min(count_value or 0, 100)
-            else:
-                total_posts = 100
-        except Exception:
+        count_value = db.query(func.count()).select_from(InfluencerPost).scalar()
+        if isinstance(count_value, int):
+            total_posts = min(count_value or 0, 100)
+        else:
             total_posts = 100
 
         return EngagementKeywordsResponse(

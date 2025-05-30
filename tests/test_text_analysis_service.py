@@ -1,3 +1,6 @@
+import os
+import operator
+from datetime import datetime
 import pytest
 from unittest.mock import patch, MagicMock
 from app.services.text_analysis_service import (
@@ -154,7 +157,7 @@ class TestTextAnalysisService:
         ]
 
         # テスト実行
-        result = get_trending_keywords(mock_db_session, 30, 10)
+        result = get_trending_keywords(mock_db_session, limit=10, year_month="2023-01", months=1)
 
         # 結果の検証
         assert len(result) > 0
@@ -163,13 +166,13 @@ class TestTextAnalysisService:
 
         # キャッシュからの取得を確認
         mock_extract_nouns.reset_mock()
-        cached_result = get_trending_keywords(mock_db_session, 30, 10)
+        cached_result = get_trending_keywords(mock_db_session, limit=10, year_month="2023-01", months=1)
         assert cached_result == result
-        # 2回目の呼び出しでは抽出関数は実行されないはず
+        # 2回目の呼び出しでは抽出関数は実行されないことの確認
         mock_extract_nouns.assert_not_called()
 
-        # 期間内に投稿がない場合（新しいテスト）
-        cache.clear()  # テスト前にキャッシュをクリア
+        # 期間内に投稿がない場合
+        cache.clear()
         mock_db_session.query().filter().all.return_value = []
         empty_result = get_trending_keywords(mock_db_session, 30, 10)
         assert empty_result == []
@@ -177,7 +180,6 @@ class TestTextAnalysisService:
     @patch("app.services.text_analysis_service.extract_nouns")
     def test_analyze_keywords_by_engagement(self, mock_extract_nouns, mock_db_session):
         """エンゲージメントベースのキーワード分析テスト"""
-        # キャッシュをクリア
         cache.clear()
 
         # モックデータの設定
@@ -220,7 +222,6 @@ class TestTextAnalysisService:
             item["word"] == "いいね" and item["count"] == 1 for item in comment_result
         )
 
-        # キャッシュからの取得を確認（追加テスト）
         cache.clear()
         mock_extract_nouns.reset_mock()
         mock_extract_nouns.side_effect = [
@@ -234,7 +235,6 @@ class TestTextAnalysisService:
         mock_extract_nouns.reset_mock()
         cached_result = analyze_keywords_by_engagement(mock_db_session, "likes", 10)
         assert cached_result == first_result
-        # 2回目の呼び出しでは抽出関数は実行されないはず（追加呼び出し無し）
         mock_extract_nouns.assert_not_called()
 
         # 投稿が取得できない場合（新しいテスト）
@@ -262,7 +262,7 @@ class TestTextAnalysisService:
         keywords = get_influencer_keywords(MagicMock(), 1, limit=10)
         assert isinstance(keywords, list)
 
-        trending = get_trending_keywords(MagicMock(), days=30, limit=10)
+        trending = get_trending_keywords(MagicMock(), year_month="2021-01", months=3, limit=10)
         assert isinstance(trending, list)
 
         engagement = analyze_keywords_by_engagement(
