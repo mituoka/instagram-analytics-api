@@ -20,16 +20,6 @@ services:
       - MAX_WORKERS=4
     command: ["./docker/app/entrypoint.sh"]
     restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:8000/docs > /dev/null 2>&1 || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
 
   db:
     image: postgres:15
