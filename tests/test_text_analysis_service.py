@@ -1,6 +1,3 @@
-import os
-import operator
-from datetime import datetime
 import pytest
 from unittest.mock import patch, MagicMock
 from app.services.text_analysis_service import (
@@ -157,7 +154,9 @@ class TestTextAnalysisService:
         ]
 
         # テスト実行
-        result = get_trending_keywords(mock_db_session, limit=10, year_month="2023-01", months=1)
+        result = get_trending_keywords(
+            mock_db_session, limit=10, year_month="2023-01", months=1
+        )
 
         # 結果の検証
         assert len(result) > 0
@@ -166,7 +165,9 @@ class TestTextAnalysisService:
 
         # キャッシュからの取得を確認
         mock_extract_nouns.reset_mock()
-        cached_result = get_trending_keywords(mock_db_session, limit=10, year_month="2023-01", months=1)
+        cached_result = get_trending_keywords(
+            mock_db_session, limit=10, year_month="2023-01", months=1
+        )
         assert cached_result == result
         # 2回目の呼び出しでは抽出関数は実行されないことの確認
         mock_extract_nouns.assert_not_called()
@@ -262,7 +263,9 @@ class TestTextAnalysisService:
         keywords = get_influencer_keywords(MagicMock(), 1, limit=10)
         assert isinstance(keywords, list)
 
-        trending = get_trending_keywords(MagicMock(), year_month="2021-01", months=3, limit=10)
+        trending = get_trending_keywords(
+            MagicMock(), year_month="2021-01", months=3, limit=10
+        )
         assert isinstance(trending, list)
 
         engagement = analyze_keywords_by_engagement(

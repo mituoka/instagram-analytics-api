@@ -15,7 +15,7 @@ import re
 import hashlib
 import json
 import concurrent.futures
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.models.database_models import InfluencerPost
 from app.dependencies.cache_utils import cache
@@ -52,23 +52,28 @@ def extract_nouns(content: str) -> List[str]:
 
     # トークナイザーを取得
     tokenizer = get_tokenizer()
-        
+
     # 前処理: 不要な文字を削除してトークン化負荷を軽減
     # URLやハッシュタグ、メンション等を事前にフィルタリング
-    content = re.sub(r'https?://\S+|www\.\S+', '', content)
-        
+    content = re.sub(r"https?://\S+|www\.\S+", "", content)
+
     # テキストをトークン化し、名詞のみを取得（ジェネレータ式で効率化）
-    
+
     nouns = [
-            token.surface 
-            for token in tokenizer.tokenize(content)
-            if token.part_of_speech.split(",")[0] == "名詞" 
-            and len(token.surface) > 1  # 1文字の名詞は除外
-        and not re.match(r"^[0-9０-９]+$|^[!-/:-@[-`{-~]+$", token.surface)  # 数字や記号のみの場合も除外
-        and not re.match(r"^[0-9０-９]+$|^[!-/:-@[-`{-~]+$", token.surface)  # 数字や記号のみの場合も除外
+        token.surface
+        for token in tokenizer.tokenize(content)
+        if token.part_of_speech.split(",")[0] == "名詞"
+        and len(token.surface) > 1  # 1文字の名詞は除外
+        and not re.match(
+            r"^[0-9０-９]+$|^[!-/:-@[-`{-~]+$", token.surface
+        )  # 数字や記号のみの場合も除外
+        and not re.match(
+            r"^[0-9０-９]+$|^[!-/:-@[-`{-~]+$", token.surface
+        )  # 数字や記号のみの場合も除外
     ]
-                
+
     return nouns
+
 
 def get_influencer_keywords(
     db: Session, influencer_id: int, limit: int = 10
@@ -97,7 +102,7 @@ def get_influencer_keywords(
     cached_result = cache.get(cache_key)
     if cached_result:
         return cached_result
-    
+
     # インフルエンサーの最新データを確認するためのクエリ（キャッシュ制御用）
     _ = (
         db.query(func.max(InfluencerPost.updated_at))
@@ -167,10 +172,7 @@ def get_cache_key(prefix: str, **kwargs) -> str:
 
 
 def get_trending_keywords(
-    db: Session, 
-    limit: int = 20, 
-    year_month: str = None, 
-    months: int = None
+    db: Session, limit: int = 20, year_month: str = None, months: int = None
 ) -> List[Dict]:
     """
     指定期間の投稿から、トレンドキーワードを抽出
@@ -186,7 +188,9 @@ def get_trending_keywords(
         List[Dict]: キーワードと出現回数のリスト
     """
     # キャッシュキーを作成
-    cache_key = get_cache_key("trending_keywords", limit=limit, year_month=year_month, months=months)
+    cache_key = get_cache_key(
+        "trending_keywords", limit=limit, year_month=year_month, months=months
+    )
 
     # キャッシュをチェック
     cached_result = cache.get(cache_key)
@@ -195,12 +199,12 @@ def get_trending_keywords(
 
     # クエリビルダー
     query = db.query(InfluencerPost)
-    
+
     # フィルター条件適用
     if year_month is not None and months is not None:
         # 年月指定の場合（YYYY-MM形式を解析）
         try:
-            start_year, start_month = map(int, year_month.split('-'))
+            start_year, start_month = map(int, year_month.split("-"))
             start_date = datetime(start_year, start_month, 1)
             # 月数を加算して終了日を計算
             if start_month + months <= 12:
@@ -209,17 +213,16 @@ def get_trending_keywords(
                 years_to_add = (start_month + months - 1) // 12
                 end_month = (start_month + months - 1) % 12 + 1
                 end_date = datetime(start_year + years_to_add, end_month, 1)
-            
+
             query = query.filter(
                 InfluencerPost.post_date >= start_date,
-                InfluencerPost.post_date < end_date
+                InfluencerPost.post_date < end_date,
             )
         except (ValueError, TypeError) as e:
             raise HTTPException(
-                status_code=400, 
-                detail=f"無効な年月形式です。YYYY-MM形式で指定してください: {str(e)}"
+                status_code=400, detail=f"無効な年月形式です。YYYY-MM形式で指定してください: {str(e)}"
             )
-    
+
     # 期間内の投稿を取得
     posts = query.all()
 
@@ -242,30 +245,30 @@ def get_trending_keywords(
 
     # パフォーマンス最適化: チャンクサイズを調整して大量データでの効率を向上
     import os
+
     # CPU数に基づいてワーカー数を調整 (ただし最大値を設定)
     max_workers = min(os.cpu_count() or 4, 16)
-    
+
     # 投稿をバッチ処理するためにリスト分割
     def chunks(lst, n):
         for i in range(0, len(lst), n):
-            yield lst[i:i + n]
-    
+            yield lst[i : i + n]
+
     # 大規模データセット用の最適化: 投稿を小さなバッチに分割して処理
     valid_posts = [post for post in posts if post.text]
     total_posts = len(valid_posts)
-    
+
     if total_posts == 0:
         return []
-    
+
     # データ量に応じて処理方法を選択
     if total_posts < 100:
         # 少量データの場合は直接処理
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_text = {
-                executor.submit(process_text, post.text): post
-                for post in valid_posts
+                executor.submit(process_text, post.text): post for post in valid_posts
             }
-            
+
             for future in concurrent.futures.as_completed(future_to_text):
                 try:
                     result = future.result()
@@ -277,9 +280,11 @@ def get_trending_keywords(
         # 適切なバッチサイズを計算 (ワーカー数の倍数)
         batch_size = 50
         batches = list(chunks(valid_posts, batch_size))
-        
+
         for batch in batches:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
                 futures = [executor.submit(process_text, post.text) for post in batch]
                 for future in concurrent.futures.as_completed(futures):
                     try:
@@ -359,16 +364,16 @@ def analyze_keywords_by_engagement(
 
     # パフォーマンス最適化: CPU数に基づいてワーカー数を調整
     import os
+
     max_workers = min(os.cpu_count() or 4, 12)
-    
+
     valid_posts = [post for post in posts if post.text]
     if not valid_posts:
         return []
-        
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_text = {
-            executor.submit(process_text, post.text): post
-            for post in valid_posts
+            executor.submit(process_text, post.text): post for post in valid_posts
         }
 
         for future in concurrent.futures.as_completed(future_to_text):
@@ -377,6 +382,7 @@ def analyze_keywords_by_engagement(
                 all_nouns.extend(result)
             except Exception as e:
                 import logging
+
                 logging.getLogger("app").warning(f"Error processing text: {str(e)}")
 
     # カウント、ソート、整形

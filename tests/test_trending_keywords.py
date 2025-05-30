@@ -3,7 +3,7 @@
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import HTTPException
 
 from app.services.text_analysis_service import get_trending_keywords
@@ -52,9 +52,8 @@ class TestTrendingKeywords:
         mock_db.query.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.all.return_value = [post1, post2, post3]
-        
+
         # 投稿数カウントのモック
-        mock_count = MagicMock()
         mock_filter.count.return_value = 3
         mock_query.count.return_value = 3
 
@@ -66,7 +65,9 @@ class TestTrendingKeywords:
         ]
 
         # テスト実行: 2023年1月から3ヶ月間のデータ分析
-        result = get_trending_keywords(mock_db, year_month="2023-01", months=3, limit=10)
+        result = get_trending_keywords(
+            mock_db, year_month="2023-01", months=3, limit=10
+        )
 
         # 結果の検証
         assert len(result) > 0
@@ -79,11 +80,13 @@ class TestTrendingKeywords:
     def test_trending_keywords_with_invalid_year_month_format(self, mock_extract_nouns):
         """無効な年月形式でのエラー処理テスト"""
         mock_db = MagicMock()
-        
+
         # 無効な年月形式でテスト実行
         with pytest.raises(HTTPException) as excinfo:
-            get_trending_keywords(mock_db, year_month="invalid-format", months=3, limit=10)
-        
+            get_trending_keywords(
+                mock_db, year_month="invalid-format", months=3, limit=10
+            )
+
         # エラーメッセージの検証
         assert excinfo.value.status_code == 400
         assert "無効な年月形式" in str(excinfo.value.detail)
@@ -99,10 +102,10 @@ class TestTrendingKeywords:
         mock_filter.all.return_value = []
         mock_filter.count.return_value = 0
         mock_query.count.return_value = 0
-        
+
         # テスト実行 (パラメータなしでも動作するようになった)
         result = get_trending_keywords(mock_db, limit=10)
-        
+
         # 結果の検証
         assert result == []
 
@@ -132,15 +135,19 @@ class TestTrendingKeywords:
         mock_extract_nouns.return_value = ["キャッシュ", "テスト"]
 
         # 1回目の実行（キャッシュに保存される）
-        first_result = get_trending_keywords(mock_db, year_month="2023-01", months=1, limit=10)
-        
+        first_result = get_trending_keywords(
+            mock_db, year_month="2023-01", months=1, limit=10
+        )
+
         # 抽出関数が呼ばれたことを確認
         assert mock_extract_nouns.call_count == 1
-        
+
         # 2回目の実行（キャッシュから読み込まれる）
         mock_extract_nouns.reset_mock()
-        second_result = get_trending_keywords(mock_db, year_month="2023-01", months=1, limit=10)
-        
+        second_result = get_trending_keywords(
+            mock_db, year_month="2023-01", months=1, limit=10
+        )
+
         # 結果が同じで、抽出関数が呼ばれていないことを確認
         assert second_result == first_result
         mock_extract_nouns.assert_not_called()

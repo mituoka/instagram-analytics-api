@@ -68,7 +68,9 @@ def get_influencer_keywords(
 )
 def get_trending_keywords(
     limit: int = Query(20, description="取得するキーワード数", ge=1, le=100),
-    year_month: Optional[str] = Query(None, description="分析開始年月（YYYY-MM形式）", pattern=r"^\d{4}-\d{2}$"),
+    year_month: Optional[str] = Query(
+        None, description="分析開始年月（YYYY-MM形式）", pattern=r"^\d{4}-\d{2}$"
+    ),
     months: Optional[int] = Query(None, description="分析期間（月数）", ge=1, le=36),
     db: Session = Depends(get_db),
 ):
@@ -78,21 +80,22 @@ def get_trending_keywords(
     指定方法:
     - **year_month**: 分析開始年月（YYYY-MM形式）
     - **months**: 分析期間（月数、1〜36ヶ月）
-    
+
     パラメータ未指定時は過去全ての投稿データを分析します。
-    
+
     - **limit**: 返すキーワードの最大数（1〜100の範囲、デフォルト20）
 
     形態素解析を使用して日本語テキストを適切に分析し、名詞のみを抽出して頻度をカウントします。
     """
     try:
         # パラメータの組み合わせチェック
-        if (year_month is not None and months is None) or (year_month is None and months is not None):
+        if (year_month is not None and months is None) or (
+            year_month is None and months is not None
+        ):
             raise HTTPException(
-                status_code=400,
-                detail="year_monthとmonthsは一緒に指定する必要があります"
+                status_code=400, detail="year_monthとmonthsは一緒に指定する必要があります"
             )
-            
+
         # トレンドキーワードを取得
         try:
             keywords = text_analysis_service.get_trending_keywords(
@@ -100,21 +103,20 @@ def get_trending_keywords(
             )
         except Exception as e:
             raise HTTPException(
-                status_code=500,
-                detail=f"Error analyzing trending keywords: {str(e)}"
+                status_code=500, detail=f"Error analyzing trending keywords: {str(e)}"
             )
 
         # 投稿数を取得
         from sqlalchemy import func
         from app.models.database_models import InfluencerPost
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         query = db.query(func.count(InfluencerPost.id))
-        
+
         if year_month is not None and months is not None:
-            start_year, start_month = map(int, year_month.split('-'))
+            start_year, start_month = map(int, year_month.split("-"))
             start_date = datetime(start_year, start_month, 1)
-                
+
             # 月数を加算して終了日を計算
             if start_month + months <= 12:
                 end_date = datetime(start_year, start_month + months, 1)
@@ -122,25 +124,25 @@ def get_trending_keywords(
                 years_to_add = (start_month + months - 1) // 12
                 end_month = (start_month + months - 1) % 12 + 1
                 end_date = datetime(start_year + years_to_add, end_month, 1)
-                
+
             query = query.filter(
                 InfluencerPost.post_date >= start_date,
-                InfluencerPost.post_date < end_date
+                InfluencerPost.post_date < end_date,
             )
             # 概算の日数
             time_period_days = (end_date - start_date).days
         else:
             # 全期間の場合
             time_period_days = None
-        
+
         posts_count = query.scalar() or 0
 
         return KeywordAnalysisResponse(
-            keywords=keywords, 
-            total_analyzed_posts=posts_count, 
+            keywords=keywords,
+            total_analyzed_posts=posts_count,
             time_period_days=time_period_days,
             start_year_month=year_month,
-            months=months
+            months=months,
         )
     except Exception as e:
         raise HTTPException(

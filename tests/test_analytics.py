@@ -2,16 +2,14 @@
 analytics.pyのテスト
 APIルーターのテストを行う
 """
-import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, timedelta
 
 from app.main import app
-from app.models.schemas import KeywordAnalysisResponse
 
 client = TestClient(app)
+
 
 class TestAnalyticsEndpoints:
     @patch("app.routers.analytics.text_analysis_service.get_influencer_keywords")
@@ -37,7 +35,9 @@ class TestAnalyticsEndpoints:
         assert "total_analyzed_posts" in data
 
     @patch("app.routers.analytics.text_analysis_service.get_influencer_keywords")
-    def test_get_influencer_keywords_exception(self, mock_get_keywords, api_test_client):
+    def test_get_influencer_keywords_exception(
+        self, mock_get_keywords, api_test_client
+    ):
         """インフルエンサーキーワード分析エンドポイントの一般例外処理テスト"""
         # 一般例外を発生させる（60-61行目のカバレッジ向上）
         mock_get_keywords.side_effect = Exception("一般的なエラー")
@@ -127,10 +127,12 @@ class TestAnalyticsEndpoints:
         """年月と月数による日付範囲計算のテスト"""
         # キーワードの結果をモック
         mock_get_keywords.return_value = [{"word": "テスト", "count": 5}]
-        
+
         # APIリクエスト - 年をまたぐ月数指定
-        response = client.get("/api/v1/analytics/trending-keywords?year_month=2021-11&months=5")
-        
+        response = client.get(
+            "/api/v1/analytics/trending-keywords?year_month=2021-11&months=5"
+        )
+
         # レスポンスの検証
         assert response.status_code == 200
         data = response.json()
@@ -138,58 +140,60 @@ class TestAnalyticsEndpoints:
         # 11月から5ヶ月なので、11,12,1,2,3月の日数の合計に近い値になるはず
         # 具体的な日数は月によって異なるが、概算で150日程度
         assert 150 < data["time_period_days"] < 160
-        
+
     @patch("app.routers.analytics.text_analysis_service.get_trending_keywords")
     def test_get_trending_keywords_all_period(self, mock_get_keywords):
         """期間指定なしでの全期間分析のテスト"""
         # キーワードの結果をモック
         mock_get_keywords.return_value = [{"word": "全期間", "count": 10}]
-        
+
         # APIリクエスト - パラメータなし
         response = client.get("/api/v1/analytics/trending-keywords")
-        
+
         # レスポンスの検証
         assert response.status_code == 200
         data = response.json()
         assert "time_period_days" in data
         assert data["time_period_days"] is None  # 全期間なのでNullが返る
-        
+
     @patch("app.routers.analytics.text_analysis_service.get_trending_keywords")
     def test_get_trending_keywords_error_handling(self, mock_get_keywords):
         """トレンドキーワード取得時のエラー処理テスト"""
         # エラーを発生させるモック
         mock_get_keywords.side_effect = Exception("テスト用エラー")
-        
+
         # APIリクエスト
-        response = client.get("/api/v1/analytics/trending-keywords?year_month=2023-01&months=3")
-        
+        response = client.get(
+            "/api/v1/analytics/trending-keywords?year_month=2023-01&months=3"
+        )
+
         # エラーレスポンスの検証
         assert response.status_code == 500
         assert "Error analyzing trending keywords" in response.json()["detail"]
-        
+
     def test_missing_parameter_error(self):
         """パラメータが不完全な場合のエラー処理テスト"""
         # year_monthのみでmonthsがない場合
         response = client.get("/api/v1/analytics/trending-keywords?year_month=2021-10")
         assert response.status_code == 500  # 現在の実装では500エラーが返る
-        
+
         # monthsのみでyear_monthがない場合
         response = client.get("/api/v1/analytics/trending-keywords?months=3")
         assert response.status_code == 500  # 現在の実装では500エラーが返る
-    
+
     @patch("app.routers.analytics.text_analysis_service.get_influencer_keywords")
     def test_get_influencer_keywords_general_exception(self, mock_get_keywords):
         """インフルエンサーのキーワード取得で一般的な例外が発生した場合のテスト"""
         # 一般的な例外を発生させるモック
         mock_get_keywords.side_effect = Exception("一般的なエラー")
-        
+
         # APIリクエスト
         response = client.get("/api/v1/analytics/1/keywords")
-        
+
         # エラーレスポンスの検証
         assert response.status_code == 500
         assert "Error analyzing keywords" in response.json()["detail"]
-        
+
     @patch("app.routers.analytics.text_analysis_service.analyze_keywords_by_engagement")
     @patch("app.routers.analytics.get_db")
     def test_get_engagement_keywords_non_integer_count(
@@ -200,8 +204,9 @@ class TestAnalyticsEndpoints:
         mock_analyze.return_value = [{"word": "テスト", "count": 5}]
 
         # カウントの部分だけを直接モック
-        from app.routers.analytics import func
-        with patch("app.routers.analytics.isinstance", return_value=False):  # あえてisinstance()をFalseにする
+        with patch(
+            "app.routers.analytics.isinstance", return_value=False
+        ):  # あえてisinstance()をFalseにする
             # APIリクエスト
             response = api_test_client.get(
                 "/api/v1/analytics/keywords/engagement?engagement_type=likes&limit=10"
