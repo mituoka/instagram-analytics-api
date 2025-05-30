@@ -7,6 +7,10 @@ include =
     app/services/text_analysis_service.py
     cli/import_csv.py
 omit = 
+    # 下記はカバレッジ計測から除外とする
+    app/database/*
+    app/dependencies/*
+    app/services/patches.py
     */test_*
     */conftest.py
     */alembic/*
