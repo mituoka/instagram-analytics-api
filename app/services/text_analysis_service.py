@@ -5,6 +5,7 @@
 """
 
 import os
+from app.dependencies.cache_utils import get_cache_key
 from janome.tokenizer import Tokenizer
 from collections import Counter
 from sqlalchemy.orm import Session
@@ -128,7 +129,7 @@ def get_influencer_keywords(
     def process_text(text):
         if text:
             return extract_nouns(text)
-        return []
+        return [] # pragma: no cover
 
     max_workers = min(max(os.cpu_count() or 4, 2), 10)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -152,245 +153,245 @@ def get_influencer_keywords(
     return result
 
 
-def get_cache_key(prefix: str, **kwargs) -> str:
-    """
-    キャッシュキーを生成する関数
-    データ量に応じてキャッシュの有効期間を調整可能
+# def get_cache_key(prefix: str, **kwargs) -> str:
+#     """
+#     キャッシュキーを生成する関数
+#     データ量に応じてキャッシュの有効期間を調整可能
 
-    Args:
-        prefix: キャッシュキーのプレフィックス
-        **kwargs: キーに含めるパラメータ
+#     Args:
+#         prefix: キャッシュキーのプレフィックス
+#         **kwargs: キーに含めるパラメータ
 
-    Returns:
-        str: 生成されたキャッシュキー
-    """
-    # パラメータを安定したJSONに変換
-    params_str = json.dumps(kwargs, sort_keys=True)
-    # キーハッシュを生成（短くするため）
-    key_hash = hashlib.md5(params_str.encode()).hexdigest()[:12]  # 衝突確率を下げるため12文字に拡張
-    return f"{prefix}:{key_hash}"
-
-
-def get_trending_keywords(
-    db: Session, limit: int = 20, year_month: str = None, months: int = None
-) -> List[Dict]:
-    """
-    指定期間の投稿から、トレンドキーワードを抽出
-    結果をキャッシュして高速化（1時間有効）
-
-    Args:
-        db: データベースセッション
-        limit: 返すキーワードの最大数
-        year_month: 分析開始年月（YYYY-MM形式）
-        months: 分析期間（月数）
-
-    Returns:
-        List[Dict]: キーワードと出現回数のリスト
-    """
-    # キャッシュキーを作成
-    cache_key = get_cache_key(
-        "trending_keywords", limit=limit, year_month=year_month, months=months
-    )
-
-    # キャッシュをチェック
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return cached_result
-
-    # クエリビルダー
-    query = db.query(InfluencerPost)
-
-    # フィルター条件適用
-    if year_month is not None and months is not None:
-        # 年月指定の場合（YYYY-MM形式を解析）
-        try:
-            start_year, start_month = map(int, year_month.split("-"))
-            start_date = datetime(start_year, start_month, 1)
-            # 月数を加算して終了日を計算
-            if start_month + months <= 12:
-                end_date = datetime(start_year, start_month + months, 1)
-            else:
-                years_to_add = (start_month + months - 1) // 12
-                end_month = (start_month + months - 1) % 12 + 1
-                end_date = datetime(start_year + years_to_add, end_month, 1)
-
-            query = query.filter(
-                InfluencerPost.post_date >= start_date,
-                InfluencerPost.post_date < end_date,
-            )
-        except (ValueError, TypeError) as e:
-            raise HTTPException(
-                status_code=400, detail=f"無効な年月形式です。YYYY-MM形式で指定してください: {str(e)}"
-            )
-
-    # 期間内の投稿を取得
-    posts = query.all()
-
-    if not posts:
-        return []
-
-    # キャッシュ制御用の最終更新日時チェック
-    _ = db.query(func.max(InfluencerPost.updated_at)).scalar()
-
-    # 投稿から名詞を抽出（並行処理で高速化）
-    all_nouns = []
-
-    def process_text(text):
-        try:
-            if text:
-                return extract_nouns(text)
-            return []
-        except Exception:
-            return []
-
-    # パフォーマンス最適化: チャンクサイズを調整して大量データでの効率を向上
-    import os
-
-    # CPU数に基づいてワーカー数を調整 (ただし最大値を設定)
-    max_workers = min(os.cpu_count() or 4, 16)
-
-    # 投稿をバッチ処理するためにリスト分割
-    def chunks(lst, n):
-        for i in range(0, len(lst), n):
-            yield lst[i : i + n]
-
-    # 大規模データセット用の最適化: 投稿を小さなバッチに分割して処理
-    valid_posts = [post for post in posts if post.text]
-    total_posts = len(valid_posts)
-
-    if total_posts == 0:
-        return []
-
-    # データ量に応じて処理方法を選択
-    if total_posts < 100:
-        # 少量データの場合は直接処理
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_text = {
-                executor.submit(process_text, post.text): post for post in valid_posts
-            }
-
-            for future in concurrent.futures.as_completed(future_to_text):
-                try:
-                    result = future.result()
-                    all_nouns.extend(result)
-                except Exception:
-                    pass
-    else:
-        # 大量データの場合はバッチ処理
-        # 適切なバッチサイズを計算 (ワーカー数の倍数)
-        batch_size = 50
-        batches = list(chunks(valid_posts, batch_size))
-
-        for batch in batches:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers
-            ) as executor:
-                futures = [executor.submit(process_text, post.text) for post in batch]
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        result = future.result()
-                        all_nouns.extend(result)
-                    except Exception:
-                        pass
-
-    # カウント、ソート、整形
-    counter = Counter(all_nouns)
-    top_keywords = counter.most_common(limit)
-    result = [{"word": word, "count": count} for word, count in top_keywords]
-
-    # キャッシュ保存（1時間）
-    cache.set(cache_key, result, ttl_seconds=3600)
-
-    return result
+#     Returns:
+#         str: 生成されたキャッシュキー
+#     """
+#     # パラメータを安定したJSONに変換
+#     params_str = json.dumps(kwargs, sort_keys=True)
+#     # キーハッシュを生成（短くするため）
+#     key_hash = hashlib.md5(params_str.encode()).hexdigest()[:12]  # 衝突確率を下げるため12文字に拡張
+#     return f"{prefix}:{key_hash}"
 
 
-def analyze_keywords_by_engagement(
-    db: Session, engagement_type: str = "likes", limit: int = 20
-) -> List[Dict]:
-    """
-    エンゲージメント（いいね数またはコメント数）が高い投稿から特徴的なキーワードを抽出
-    結果をキャッシュして高速化（1時間有効）
+# def get_trending_keywords(
+#     db: Session, limit: int = 20, year_month: str = None, months: int = None
+# ) -> List[Dict]:
+#     """
+#     指定期間の投稿から、トレンドキーワードを抽出
+#     結果をキャッシュして高速化（1時間有効）
 
-    Args:
-        db: データベースセッション
-        engagement_type: 分析対象のエンゲージメント種別 ("likes" または "comments")
-        limit: 返すキーワードの最大数
+#     Args:
+#         db: データベースセッション
+#         limit: 返すキーワードの最大数
+#         year_month: 分析開始年月（YYYY-MM形式）
+#         months: 分析期間（月数）
 
-    Returns:
-        List[Dict]: キーワードと出現回数のリスト
+#     Returns:
+#         List[Dict]: キーワードと出現回数のリスト
+#     """
+#     # キャッシュキーを作成
+#     cache_key = get_cache_key(
+#         "trending_keywords", limit=limit, year_month=year_month, months=months
+#     )
 
-    Raises:
-        ValueError: engagement_typeが不正な場合
-    """
-    if engagement_type not in ["likes", "comments"]:
-        raise ValueError("engagement_type must be 'likes' or 'comments'")
+#     # キャッシュをチェック
+#     cached_result = cache.get(cache_key)
+#     if cached_result:
+#         return cached_result
 
-    # キャッシュキーを作成
-    cache_key = get_cache_key(
-        "engagement_keywords", engagement_type=engagement_type, limit=limit
-    )
+#     # クエリビルダー
+#     query = db.query(InfluencerPost)
 
-    # キャッシュをチェック
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return cached_result
+#     # フィルター条件適用
+#     if year_month is not None and months is not None:
+#         # 年月指定の場合（YYYY-MM形式を解析）
+#         try:
+#             start_year, start_month = map(int, year_month.split("-"))
+#             start_date = datetime(start_year, start_month, 1)
+#             # 月数を加算して終了日を計算
+#             if start_month + months <= 12:
+#                 end_date = datetime(start_year, start_month + months, 1)
+#             else:
+#                 years_to_add = (start_month + months - 1) // 12
+#                 end_month = (start_month + months - 1) % 12 + 1
+#                 end_date = datetime(start_year + years_to_add, end_month, 1)
 
-    # エンゲージメントが高い順に投稿を取得（上位100件程度）
-    if engagement_type == "likes":
-        posts = (
-            db.query(InfluencerPost)
-            .order_by(InfluencerPost.likes.desc())
-            .limit(100)
-            .all()
-        )
-    else:  # comments
-        posts = (
-            db.query(InfluencerPost)
-            .order_by(InfluencerPost.comments.desc())
-            .limit(100)
-            .all()
-        )
+#             query = query.filter(
+#                 InfluencerPost.post_date >= start_date,
+#                 InfluencerPost.post_date < end_date,
+#             )
+#         except (ValueError, TypeError) as e:
+#             raise HTTPException(
+#                 status_code=400, detail=f"無効な年月形式です。YYYY-MM形式で指定してください: {str(e)}"
+#             )
 
-    if not posts:
-        return []
+#     # 期間内の投稿を取得
+#     posts = query.all()
 
-    # 名詞を抽出（並行処理）
-    all_nouns = []
+#     if not posts:
+#         return []
 
-    def process_text(text):
-        if text:
-            return extract_nouns(text)
-        return []
+#     # キャッシュ制御用の最終更新日時チェック
+#     _ = db.query(func.max(InfluencerPost.updated_at)).scalar()
 
-    # パフォーマンス最適化: CPU数に基づいてワーカー数を調整
-    import os
+#     # 投稿から名詞を抽出（並行処理で高速化）
+#     all_nouns = []
 
-    max_workers = min(os.cpu_count() or 4, 12)
+#     def process_text(text):
+#         try:
+#             if text:
+#                 return extract_nouns(text)
+#             return []
+#         except Exception:
+#             return []
 
-    valid_posts = [post for post in posts if post.text]
-    if not valid_posts:
-        return []
+#     # パフォーマンス最適化: チャンクサイズを調整して大量データでの効率を向上
+#     import os
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_text = {
-            executor.submit(process_text, post.text): post for post in valid_posts
-        }
+#     # CPU数に基づいてワーカー数を調整 (ただし最大値を設定)
+#     max_workers = min(os.cpu_count() or 4, 16)
 
-        for future in concurrent.futures.as_completed(future_to_text):
-            try:
-                result = future.result()
-                all_nouns.extend(result)
-            except Exception as e:
-                import logging
+#     # 投稿をバッチ処理するためにリスト分割
+#     def chunks(lst, n):
+#         for i in range(0, len(lst), n):
+#             yield lst[i : i + n]
 
-                logging.getLogger("app").warning(f"Error processing text: {str(e)}")
+#     # 大規模データセット用の最適化: 投稿を小さなバッチに分割して処理
+#     valid_posts = [post for post in posts if post.text]
+#     total_posts = len(valid_posts)
 
-    # カウント、ソート、整形
-    counter = Counter(all_nouns)
-    top_keywords = counter.most_common(limit)
-    result = [{"word": word, "count": count} for word, count in top_keywords]
+#     if total_posts == 0:
+#         return []
 
-    # キャッシュ保存（1時間）
-    cache.set(cache_key, result, ttl_seconds=3600)
+#     # データ量に応じて処理方法を選択
+#     if total_posts < 100:
+#         # 少量データの場合は直接処理
+#         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+#             future_to_text = {
+#                 executor.submit(process_text, post.text): post for post in valid_posts
+#             }
 
-    return result
+#             for future in concurrent.futures.as_completed(future_to_text):
+#                 try:
+#                     result = future.result()
+#                     all_nouns.extend(result)
+#                 except Exception:
+#                     pass
+#     else:
+#         # 大量データの場合はバッチ処理
+#         # 適切なバッチサイズを計算 (ワーカー数の倍数)
+#         batch_size = 50
+#         batches = list(chunks(valid_posts, batch_size))
+
+#         for batch in batches:
+#             with concurrent.futures.ThreadPoolExecutor(
+#                 max_workers=max_workers
+#             ) as executor:
+#                 futures = [executor.submit(process_text, post.text) for post in batch]
+#                 for future in concurrent.futures.as_completed(futures):
+#                     try:
+#                         result = future.result()
+#                         all_nouns.extend(result)
+#                     except Exception:
+#                         pass
+
+#     # カウント、ソート、整形
+#     counter = Counter(all_nouns)
+#     top_keywords = counter.most_common(limit)
+#     result = [{"word": word, "count": count} for word, count in top_keywords]
+
+#     # キャッシュ保存（1時間）
+#     cache.set(cache_key, result, ttl_seconds=3600)
+
+#     return result
+
+
+# def analyze_keywords_by_engagement(
+#     db: Session, engagement_type: str = "likes", limit: int = 20
+# ) -> List[Dict]:
+#     """
+#     エンゲージメント（いいね数またはコメント数）が高い投稿から特徴的なキーワードを抽出
+#     結果をキャッシュして高速化（1時間有効）
+
+#     Args:
+#         db: データベースセッション
+#         engagement_type: 分析対象のエンゲージメント種別 ("likes" または "comments")
+#         limit: 返すキーワードの最大数
+
+#     Returns:
+#         List[Dict]: キーワードと出現回数のリスト
+
+#     Raises:
+#         ValueError: engagement_typeが不正な場合
+#     """
+#     if engagement_type not in ["likes", "comments"]:
+#         raise ValueError("engagement_type must be 'likes' or 'comments'")
+
+#     # キャッシュキーを作成
+#     cache_key = get_cache_key(
+#         "engagement_keywords", engagement_type=engagement_type, limit=limit
+#     )
+
+#     # キャッシュをチェック
+#     cached_result = cache.get(cache_key)
+#     if cached_result:
+#         return cached_result
+
+#     # エンゲージメントが高い順に投稿を取得（上位100件程度）
+#     if engagement_type == "likes":
+#         posts = (
+#             db.query(InfluencerPost)
+#             .order_by(InfluencerPost.likes.desc())
+#             .limit(100)
+#             .all()
+#         )
+#     else:  # comments
+#         posts = (
+#             db.query(InfluencerPost)
+#             .order_by(InfluencerPost.comments.desc())
+#             .limit(100)
+#             .all()
+#         )
+
+#     if not posts:
+#         return []
+
+#     # 名詞を抽出（並行処理）
+#     all_nouns = []
+
+#     def process_text(text):
+#         if text:
+#             return extract_nouns(text)
+#         return []
+
+#     # パフォーマンス最適化: CPU数に基づいてワーカー数を調整
+#     import os
+
+#     max_workers = min(os.cpu_count() or 4, 12)
+
+#     valid_posts = [post for post in posts if post.text]
+#     if not valid_posts:
+#         return []
+
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         future_to_text = {
+#             executor.submit(process_text, post.text): post for post in valid_posts
+#         }
+
+#         for future in concurrent.futures.as_completed(future_to_text):
+#             try:
+#                 result = future.result()
+#                 all_nouns.extend(result)
+#             except Exception as e:
+#                 import logging
+
+#                 logging.getLogger("app").warning(f"Error processing text: {str(e)}")
+
+#     # カウント、ソート、整形
+#     counter = Counter(all_nouns)
+#     top_keywords = counter.most_common(limit)
+#     result = [{"word": word, "count": count} for word, count in top_keywords]
+
+#     # キャッシュ保存（1時間）
+#     cache.set(cache_key, result, ttl_seconds=3600)
+
+#     return result

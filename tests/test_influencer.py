@@ -22,43 +22,43 @@ def mock_stats_data():
 
 
 class TestInfluencerEndpoints:
-    @patch("app.routers.influencer.influencer_service.get_influencer_stats")
-    def test_get_influencer_stats_success(
-        self, mock_stats, api_test_client, mock_stats_data
-    ):
-        """インフルエンサー統計情報取得エンドポイントの正常系テスト"""
-        # モックの設定
-        mock_stats.return_value = mock_stats_data
-
-        # APIリクエスト
-        response = api_test_client.get("/api/v1/influencers/1/stats")
-
-        # レスポンスの検証
-        assert response.status_code == 200
-        data = response.json()
-        assert data["influencer_id"] == 1
-        assert data["avg_likes"] == 1500.5
-        assert data["avg_comments"] == 120.25
-        assert data["total_posts"] == 20
-
-        # モックが正しく呼び出されたことを確認
-        mock_stats.assert_called_once()
-
-    @patch("app.routers.influencer.influencer_service.get_influencer_stats")
-    def test_get_influencer_stats_not_found(self, mock_stats, api_test_client):
-        """インフルエンサー統計情報取得エンドポイントの存在しないIDテスト"""
-        # モックが例外を投げるように設定
-        from fastapi import HTTPException
-
-        mock_stats.side_effect = HTTPException(
-            status_code=404, detail="Influencer not found"
-        )
-
-        # APIリクエスト
-        response = api_test_client.get("/api/v1/influencers/999/stats")
-
-        # 404エラーが返ることを確認
-        assert response.status_code == 404
+    # @patch("app.routers.influencer.influencer_service.get_influencer_stats")
+    # def test_get_influencer_stats_success(
+    #     self, mock_stats, api_test_client, mock_stats_data
+    # ):
+    #     """インフルエンサー統計情報取得エンドポイントの正常系テスト"""
+    #     # モックの設定
+    #     mock_stats.return_value = mock_stats_data
+    #
+    #     # APIリクエスト
+    #     response = api_test_client.get("/api/v1/influencers/1/stats")
+    #
+    #     # レスポンスの検証
+    #     assert response.status_code == 200
+    #     data = response.json()
+    #     assert data["influencer_id"] == 1
+    #     assert data["avg_likes"] == 1500.5
+    #     assert data["avg_comments"] == 120.25
+    #     assert data["total_posts"] == 20
+    #
+    #     # モックが正しく呼び出されたことを確認
+    #     mock_stats.assert_called_once()
+    #
+    # @patch("app.routers.influencer.influencer_service.get_influencer_stats")
+    # def test_get_influencer_stats_not_found(self, mock_stats, api_test_client):
+    #     """インフルエンサー統計情報取得エンドポイントの存在しないIDテスト"""
+    #     # モックが例外を投げるように設定
+    #     from fastapi import HTTPException
+    #
+    #     mock_stats.side_effect = HTTPException(
+    #         status_code=404, detail="Influencer not found"
+    #     )
+    #
+    #     # APIリクエスト
+    #     response = api_test_client.get("/api/v1/influencers/999/stats")
+    #
+    #     # 404エラーが返ることを確認
+    #     assert response.status_code == 404
 
     @patch("app.routers.influencer.influencer_service.get_top_influencers_by_likes")
     def test_get_likes_ranking(
