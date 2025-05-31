@@ -235,6 +235,18 @@ instagram-analytics-api/
 └── requirements.txt         # 依存パッケージ
 ```
 
+## 🧪 テストの実行方法
+
+このプロジェクトでは単体テスト、統合テスト、カバレッジレポート生成をサポートしています。
+
+### Docker 環境でのテスト実行
+
+Docker 環境では、以下のコマンドでテストを実行できます：
+
+```bash
+docker exec instagram-analytics-api-app-1 pytest --cov --cov-report=xml --cov-report=term
+```
+
 ## 📄 ライセンス
 
 このプロジェクトは[MIT ライセンス](LICENSE)の下で公開されています。
