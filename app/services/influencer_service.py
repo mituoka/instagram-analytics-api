@@ -40,7 +40,6 @@ def get_influencer_stats(db: Session, influencer_id: int):
             status_code=404, detail=f"Influencer with ID {influencer_id} not found"
         )
 
-    # 結果を辞書で返す
     return {
         "influencer_id": influencer_id,
         "avg_likes": float(result.avg_likes),

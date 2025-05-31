@@ -24,12 +24,12 @@ class InfluencerPost(InfluencerPostBase):
     model_config = {"from_attributes": True}
 
 
-# 統計情報のスキーマ
-class InfluencerStats(BaseModel):
-    influencer_id: int
-    avg_likes: float = Field(..., description="平均いいね数")
-    avg_comments: float = Field(..., description="平均コメント数")
-    total_posts: int = Field(..., description="投稿数")
+# 統計情報のスキーマ（仕様に沿わないAPIのスキーマのため除外）
+# class InfluencerStats(BaseModel):
+#     influencer_id: int
+#     avg_likes: float = Field(..., description="平均いいね数")
+#     avg_comments: float = Field(..., description="平均コメント数")
+#     total_posts: int = Field(..., description="投稿数")
 
 
 # ランキング用のスキーマ
@@ -49,13 +49,10 @@ class KeywordCount(BaseModel):
 class KeywordAnalysisResponse(BaseModel):
     keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
     total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
-    time_period_days: Optional[int] = Field(None, description="分析対象期間（日数）")
-    start_year_month: Optional[str] = Field(None, description="分析開始年月（YYYY-MM形式）")
-    months: Optional[int] = Field(None, description="分析期間（月数）")
 
 
-# 高エンゲージメントキーワード分析のスキーマ
-class EngagementKeywordsResponse(BaseModel):
-    keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
-    engagement_type: str = Field(..., description="エンゲージメント種別（likes または comments）")
-    total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
+# 高エンゲージメントキーワード分析のスキーマ（仕様に沿わないAPIのスキーマのため除外）
+# class EngagementKeywordsResponse(BaseModel):
+#     keywords: list[KeywordCount] = Field(..., description="キーワード一覧と出現回数")
+#     engagement_type: str = Field(..., description="エンゲージメント種別（likes または comments）")
+#     total_analyzed_posts: int = Field(..., description="分析対象となった投稿の総数")
